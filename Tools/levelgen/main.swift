@@ -1,0 +1,208 @@
+import BloomsortDomain
+import Foundation
+
+// levelgen — seviye üretimi ve doğrulama CLI'ı (bkz. docs/gdd.md §4.1).
+//
+//   swift run levelgen --count 200 --out Resources/levels.json
+//   swift run levelgen --verify Resources/levels.json
+//   swift run levelgen --benchmark 100
+
+func fail(_ message: String) -> Never {
+    FileHandle.standardError.write(Data("hata: \(message)\n".utf8))
+    exit(1)
+}
+
+func usage() -> Never {
+    print("""
+    levelgen — Bloomsort seviye üreticisi
+
+      --count <n>        Üretilecek seviye sayısı (varsayılan 200)
+      --from <n>         İlk seviye numarası (varsayılan 1)
+      --seed <n>         Başlangıç seed'i (varsayılan 1)
+      --out <yol>        Çıktı JSON dosyası (varsayılan Resources/levels.json)
+      --verify <yol>     Var olan bir paketi yeniden kurup çözerek doğrula
+      --benchmark <n>    n rastgele 12 renkli tahtada çözücü süresini ölç
+      --diagnose <n>     n. seviye için ret nedenlerinin dağılımını yaz
+      --depth <n>        --benchmark için ters hamle derinliği (varsayılan 280)
+      --quiet            Seviye seviye ilerleme yazma
+    """)
+    exit(0)
+}
+
+var count = 200
+var firstLevel = 1
+var seed: UInt64 = 1
+var outputPath = "Resources/levels.json"
+var verifyPath: String?
+var benchmark: Int?
+var diagnose: Int?
+var benchmarkDepth = 280
+var quiet = false
+
+var arguments = Array(CommandLine.arguments.dropFirst())
+while let argument = arguments.first {
+    arguments.removeFirst()
+    func value(_ name: String) -> String {
+        guard let next = arguments.first else { fail("\(name) bir değer bekliyor") }
+        arguments.removeFirst()
+        return next
+    }
+    func intValue(_ name: String) -> Int {
+        guard let parsed = Int(value(name)) else { fail("\(name) sayı olmalı") }
+        return parsed
+    }
+    switch argument {
+    case "--count":     count = intValue("--count")
+    case "--from":      firstLevel = intValue("--from")
+    case "--seed":      seed = UInt64(intValue("--seed"))
+    case "--out":       outputPath = value("--out")
+    case "--verify":    verifyPath = value("--verify")
+    case "--benchmark": benchmark = intValue("--benchmark")
+    case "--diagnose":  diagnose = intValue("--diagnose")
+    case "--depth":     benchmarkDepth = intValue("--depth")
+    case "--quiet":     quiet = true
+    case "-h", "--help": usage()
+    default: fail("bilinmeyen argüman: \(argument)")
+    }
+}
+
+// MARK: - Doğrulama
+
+if let verifyPath {
+    guard let data = FileManager.default.contents(atPath: verifyPath) else {
+        fail("dosya okunamadı: \(verifyPath)")
+    }
+    let pack = try JSONDecoder().decode(LevelPack.self, from: data)
+    var worst = 0.0
+    var total = 0.0
+    for level in pack.levels {
+        let board = level.board
+        guard board.isConsistent else { fail("seviye \(level.id): renk adetleri kapasitelerle uyuşmuyor") }
+        guard !board.isSolved else { fail("seviye \(level.id): tahta zaten çözülmüş") }
+        guard board.vessels.map(\.capacity) == level.capacities else {
+            fail("seviye \(level.id): yeniden kurulan kapasiteler kayıtla uyuşmuyor")
+        }
+        guard let result = Solver.detailedSolve(board, limit: level.optimalMoves) else {
+            fail("seviye \(level.id): çözülemedi")
+        }
+        guard result.optimalMoves == level.optimalMoves else {
+            fail("seviye \(level.id): M* \(result.optimalMoves), kayıtta \(level.optimalMoves)")
+        }
+        var state = board
+        for move in result.moves {
+            guard let next = state.applying(move) else { fail("seviye \(level.id): çözüm yolunda yasadışı hamle") }
+            state = next
+        }
+        guard state.isSolved else { fail("seviye \(level.id): çözüm yolu tahtayı bitirmiyor") }
+        total += result.statistics.seconds
+        worst = max(worst, result.statistics.seconds)
+    }
+    let average = pack.levels.isEmpty ? 0 : total / Double(pack.levels.count)
+    print("\(pack.levels.count) seviye doğrulandı · ortalama çözüm \(String(format: "%.1f", average * 1000)) ms · en yavaş \(String(format: "%.1f", worst * 1000)) ms")
+    exit(0)
+}
+
+// MARK: - Teşhis
+
+if let diagnose {
+    var histogram: [String: Int] = [:]
+    var accepted = 0
+    var currentSeed = seed
+    let started = Date()
+    for _ in 0..<100 {
+        switch LevelGenerator.make(level: diagnose, seed: currentSeed) {
+        case .success: accepted += 1
+        case .failure(let reason): histogram[reason.rawValue, default: 0] += 1
+        }
+        currentSeed &+= 1
+    }
+    print("seviye \(diagnose) · M* bandı \(Difficulty.optimalMoveRange(for: diagnose)) · 100 seed · \(String(format: "%.1f", Date().timeIntervalSince(started))) sn")
+    print("  kabul: \(accepted)")
+    for (reason, count) in histogram.sorted(by: { $0.value > $1.value }) {
+        print("  \(reason): \(count)")
+    }
+    exit(0)
+}
+
+// MARK: - Çözücü ölçümü
+
+if let benchmark {
+    // GDD §8.3'ün ölçüsü: 12 renk / 15 kap.
+    var rng = SplitMix64(seed: 20260826)
+    var durations: [Double] = []
+    var optimal: [Int] = []
+    var nodes = 0
+    var unsolved = 0
+    for _ in 0..<benchmark {
+        let capacities = (0..<15).map { _ in rng.pick([3, 4, 5, 6]) }
+        let parameters = LevelGenerator.Parameters(level: 200, seed: rng.next(),
+                                                   colors: 12, emptyVessels: 3,
+                                                   capacities: capacities)
+        guard let board = LevelGenerator.scrambledBoard(parameters: parameters,
+                                                        reverseMoves: benchmarkDepth,
+                                                        rng: &rng) else { continue }
+        guard let result = Solver.detailedSolve(board, limit: Solver.defaultLimit) else {
+            unsolved += 1
+            continue
+        }
+        durations.append(result.statistics.seconds)
+        optimal.append(result.optimalMoves)
+        nodes += result.statistics.nodes
+    }
+    guard !durations.isEmpty else { fail("bütçe içinde çözülebilen tahta çıkmadı") }
+    let sorted = durations.sorted()
+    let average = durations.reduce(0, +) / Double(durations.count)
+    print("""
+    çözücü ölçümü · 12 renk / 15 kap · \(benchmarkDepth) ters hamle
+      çözülen   \(durations.count)/\(benchmark) (bütçe aşan: \(unsolved))
+      ortalama  \(String(format: "%.1f", average * 1000)) ms
+      medyan    \(String(format: "%.1f", sorted[sorted.count / 2] * 1000)) ms
+      en yavaş  \(String(format: "%.1f", sorted[sorted.count - 1] * 1000)) ms
+      M* aralığı \(optimal.min()!)–\(optimal.max()!)
+      düğüm     \(nodes / durations.count) / tahta
+    """)
+    exit(0)
+}
+
+// MARK: - Üretim
+
+let start = Date()
+var levels: [Level] = []
+var nextSeed = seed
+var failedLevel: Int?
+for id in firstLevel..<(firstLevel + count) {
+    let levelStart = Date()
+    guard let (level, followingSeed) = LevelGenerator.generate(level: id, startingSeed: nextSeed) else {
+        failedLevel = id
+        break
+    }
+    levels.append(level)
+    nextSeed = followingSeed
+    if !quiet {
+        print(String(format: "seviye %3d · K=%2d E=%d M*=%2d R=%4d dallanma=%.2f seed=%d · %.1f sn",
+                     level.id, level.colors, level.emptyVessels, level.optimalMoves,
+                     level.reverseMoves, level.branchingFactor, level.seed,
+                     Date().timeIntervalSince(levelStart)))
+    }
+}
+
+let pack = LevelPack(levels: levels)
+let encoder = JSONEncoder()
+encoder.outputFormatting = [.sortedKeys]
+let data = try encoder.encode(pack)
+
+let outputURL = URL(fileURLWithPath: outputPath)
+try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(),
+                                        withIntermediateDirectories: true)
+try data.write(to: outputURL)
+
+let elapsed = Date().timeIntervalSince(start)
+let bytesPerLevel = levels.isEmpty ? 0 : data.count / levels.count
+print("""
+\(levels.count) seviye üretildi · \(String(format: "%.1f", elapsed)) sn
+\(outputPath) · \(data.count) bayt (\(bytesPerLevel) bayt/seviye)
+""")
+if let failedLevel {
+    fail("seviye \(failedLevel) için kabul filtrelerinden geçen tahta bulunamadı; "
+         + "üretilen \(levels.count) seviye yine de yazıldı")
+}
