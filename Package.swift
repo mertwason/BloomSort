@@ -1,0 +1,41 @@
+// swift-tools-version: 6.0
+import PackageDescription
+
+// Bu paket yalnızca platformdan bağımsız katmanları içerir:
+// Domain (saf Swift) ve Services'in SDK'sız kural motorları.
+// SpriteKit/SwiftUI katmanları Xcode projesinde yaşar; bkz. docs/xcode-kurulumu.md
+let package = Package(
+    name: "Bloomsort",
+    platforms: [.iOS(.v17), .macOS(.v14)],
+    products: [
+        .library(name: "BloomsortDomain", targets: ["BloomsortDomain"]),
+        .library(name: "BloomsortServices", targets: ["BloomsortServices"]),
+        .executable(name: "levelgen", targets: ["levelgen"]),
+    ],
+    targets: [
+        .target(
+            name: "BloomsortDomain",
+            path: "Sources/BloomsortDomain"
+        ),
+        .target(
+            name: "BloomsortServices",
+            dependencies: ["BloomsortDomain"],
+            path: "Sources/BloomsortServices"
+        ),
+        .executableTarget(
+            name: "levelgen",
+            dependencies: ["BloomsortDomain"],
+            path: "Tools/levelgen"
+        ),
+        .testTarget(
+            name: "DomainTests",
+            dependencies: ["BloomsortDomain"],
+            path: "Tests/DomainTests"
+        ),
+        .testTarget(
+            name: "ServicesTests",
+            dependencies: ["BloomsortServices"],
+            path: "Tests/ServicesTests"
+        ),
+    ]
+)
