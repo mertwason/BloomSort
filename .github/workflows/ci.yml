@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    name: Testler
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derle
+        run: swift build -c release
+      - name: Birim testler
+        run: swift test
+
+  levels:
+    name: Seviye doğrulama
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derle
+        run: swift build -c release
+      # Her seviye seed'den yeniden kurulur, çözücüyle çözülür ve çözüm yolu
+      # baştan sona oynanır. Bir seviye bile çözülemezse iş kırmızı olur.
+      - name: levels.json çözülebilirlik
+        run: .build/release/levelgen --verify Resources/levels.json
