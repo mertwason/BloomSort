@@ -2,8 +2,14 @@ import Foundation
 
 /// Ters hamle yöntemiyle seviye üretimi — `docs/gdd.md` §4.1.
 ///
-/// Üretim çözülmüş durumdan geriye çalışır, bu yüzden çözülebilirlik
-/// matematiksel olarak garantidir. Yine de her seviye çözücüyle doğrulanır.
+/// Üretim çözülmüş durumdan geriye çalışır. GDD bunun çözülebilirliği
+/// "matematiksel olarak garanti" ettiğini söylüyor; bu ancak her ters hamle
+/// tam olarak bir ileri hamlenin tersiyse doğru olur ve o kadar dar bir
+/// tanımla yürüyüş birkaç adımda tıkanıyor (kalan bütün blokların tek taneye
+/// indiği tahtalardan geriye gidilemiyor). Bu yüzden §4.1'in kendi tanımı
+/// kullanılıyor — "üstten j tane alıp yasal olacak şekilde başka bir kaba
+/// koymak" — ve garanti yerine **doğrulama** konuyor: kabul edilen her
+/// seviye çözücüyle çözülür, çözülemeyen seed reddedilir.
 public enum LevelGenerator {
 
     /// Kabul filtrelerinin sonucu — reddedilen seviyelerin nedenini taşır.
