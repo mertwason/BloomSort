@@ -97,3 +97,31 @@ final class LocalizationTests: XCTestCase {
                        "Google'ın test App ID'siyle gönderim = red")
     }
 }
+
+/// Uygulama ikonu — App Store 1024 × 1024, **alfa kanalı yok, köşe
+/// yuvarlatması yok** (lansman checklist'i Faz 8). İkon `Tools/icon/make_icon.py`
+/// ile üretiliyor; elle çizilmiş asset yok.
+final class AppIconTests: XCTestCase {
+    private var iconURL: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("App/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png")
+    }
+
+    func testIkonVarVeGecerliPNG() throws {
+        let data = try Data(contentsOf: iconURL)
+        XCTAssertEqual(Array(data.prefix(8)), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+    }
+
+    func testIkonBinYirmiDortKareVeAlfasiz() throws {
+        let data = try Data(contentsOf: iconURL)
+        // IHDR: 16..24 genişlik/yükseklik, 24 bit derinliği, 25 renk tipi.
+        func uint32(_ offset: Int) -> UInt32 {
+            data[offset..<(offset + 4)].reduce(0) { ($0 << 8) | UInt32($1) }
+        }
+        XCTAssertEqual(uint32(16), 1024)
+        XCTAssertEqual(uint32(20), 1024)
+        XCTAssertEqual(data[24], 8, "8 bit kanal")
+        XCTAssertEqual(data[25], 2, "renk tipi 2 = alfasız RGB")
+    }
+}

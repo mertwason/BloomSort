@@ -5,6 +5,9 @@ import BloomsortGame
 import BloomsortServices
 import SpriteKit
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Oyun ekranı (`docs/ui-spec.md` §3.5).
 ///
@@ -240,8 +243,10 @@ final class BoardBridge: NSObject, BoardSceneDelegate {
         // Büyütülmüş gösterim erişilebilirlik içindir (§2.2); VoiceOver'a da
         // aynı metni duyuruyoruz.
         let vessel = model.state.vessels[index]
+        #if canImport(UIKit)
         UIAccessibility.post(notification: .announcement,
                              argument: VesselNode.accessibilityLabel(for: vessel, index: index))
+        #endif
     }
 
     func boardScene(_ scene: BoardScene, didTrigger haptic: Haptic) {
@@ -251,9 +256,11 @@ final class BoardBridge: NSObject, BoardSceneDelegate {
     func boardScene(_ scene: BoardScene, didBloomVessel index: Int, color: PollenColor) {
         environment.playSound(.bloom)
         let remaining = model.state.vessels.filter { !$0.isEmpty && !$0.isBloomed }.count
+        #if canImport(UIKit)
         UIAccessibility.post(notification: .announcement,
                              argument: BoardAccessibility.bloomAnnouncement(
                                 vessel: index, remainingColors: remaining))
+        #endif
     }
 
     func boardScene(_ scene: BoardScene, didLandBeadAtDepth depth: Int, color: PollenColor) {

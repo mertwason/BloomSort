@@ -58,32 +58,6 @@ public final class CollectedPlate {
     }
 }
 
-/// Ayarlar `UserDefaults`'ta (§8.1) — küçük, sık okunan, ilişkisiz veriler.
-public struct GameSettings: Codable, Equatable, Sendable {
-    public var soundEnabled = true
-    public var musicEnabled = true
-    public var hapticsEnabled = true
-    /// Sistem ayarından bağımsız oyun içi anahtar (`CLAUDE.md`).
-    public var reduceMotion = false
-    public var colorBlindMode = false
-
-    public init() {}
-
-    private static let storageKey = "bloomsort.settings"
-
-    public static func load(from defaults: UserDefaults = .standard) -> GameSettings {
-        guard let data = defaults.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode(GameSettings.self, from: data)
-        else { return GameSettings() }
-        return decoded
-    }
-
-    public func save(to defaults: UserDefaults = .standard) {
-        guard let data = try? JSONEncoder().encode(self) else { return }
-        defaults.set(data, forKey: Self.storageKey)
-    }
-}
-
 /// SwiftData ↔ saf `Progress` köprüsü. Oyun mantığı saf tip üzerinden çalışır
 /// (Linux'ta test edilebilsin), kalıcılık burada.
 public enum ProgressStore {

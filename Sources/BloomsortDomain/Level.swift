@@ -3,7 +3,7 @@
 /// Tahta saklanmaz; `seed` + parametreler saklanır ve oyun tahtayı üreticiyle
 /// yeniden kurar (bkz. `docs/gdd.md` §4.1). Böylece 500 seviye ~40 KB'ta kalır
 /// ve her cihazda birebir aynı tahta çıkar.
-public struct Level: Codable, Hashable, Sendable {
+public struct Level: Codable, Hashable, Sendable, Identifiable {
     public let id: Int
     public let seed: UInt64
     /// Renk sayısı K.

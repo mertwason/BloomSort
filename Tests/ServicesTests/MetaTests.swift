@@ -246,3 +246,40 @@ final class AudioTests: XCTestCase {
         XCTAssertNil(HapticKind.levelComplete.intensity, "bildirim haptiğinin şiddeti yok")
     }
 }
+
+final class GameSettingsTests: XCTestCase {
+    private func makeDefaults() -> UserDefaults {
+        let suite = UserDefaults(suiteName: "bloomsort.tests.\(UUID().uuidString)")!
+        return suite
+    }
+
+    func testVarsayilanlarSesAcikHaptikAcik() {
+        let settings = GameSettings()
+        XCTAssertTrue(settings.soundEnabled)
+        XCTAssertTrue(settings.hapticsEnabled)
+        XCTAssertFalse(settings.reduceMotion)
+        XCTAssertFalse(settings.colorBlindMode)
+    }
+
+    func testKaydetVeYukle() {
+        let defaults = makeDefaults()
+        var settings = GameSettings()
+        settings.colorBlindMode = true
+        settings.hapticsEnabled = false
+        settings.save(to: defaults)
+        let loaded = GameSettings.load(from: defaults)
+        XCTAssertEqual(loaded, settings)
+    }
+
+    func testBozukVeriVarsayilanaDonuyor() {
+        let defaults = makeDefaults()
+        defaults.set(Data([0x00, 0x01]), forKey: GameSettings.storageKey)
+        XCTAssertEqual(GameSettings.load(from: defaults), GameSettings())
+    }
+
+    func testHaptikSestenBagimsiz() {
+        var settings = GameSettings()
+        settings.soundEnabled = false
+        XCTAssertTrue(settings.hapticsEnabled, "haptik ayrı kapatılır")
+    }
+}
