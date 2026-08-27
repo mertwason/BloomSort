@@ -120,6 +120,44 @@ final class SolverTests: XCTestCase {
         }
     }
 
+    func testAyniRenkIkiKabiDoldurarakBitebilir() {
+        // 6 tane 0 rengi, iki adet 3'lük kabı doldurarak bitiyor. Kazanma
+        // koşulu "her kap boş ya da tek renkle dolu" olduğu için bu geçerli
+        // bir bitiş; heuristik burada sıfır vermek zorunda.
+        let solved = GameState(capacities: [3, 3, 4, 4],
+                               contents: [[0, 0, 0], [0, 0, 0], [1, 1, 1, 1], []])
+        XCTAssertTrue(solved.isSolved)
+        XCTAssertEqual(Solver.heuristic(solved), 0)
+        XCTAssertEqual(Solver.solve(solved)?.count, 0)
+    }
+
+    func testRenginBolunerekBittigiTahtadaOptimalBulunur() throws {
+        // Aynı kurgu, karışmış hâlde: "her rengi tek kaba topla" varsayan bir
+        // heuristik burada optimali aşıyor ve IDA* uzun çözüm döndürüyordu.
+        let state = GameState(capacities: [3, 3, 4, 4],
+                              contents: [[0, 1, 0], [1, 0, 1], [0, 1, 0, 0], []])
+        let reference = try XCTUnwrap(breadthFirstOptimal(state))
+        XCTAssertEqual(Solver.solve(state)?.count, reference)
+    }
+
+    func testHeuristikCozumYolununTamamindaKabulEdilebilir() {
+        // Kök yeterli değil: kabul edilebilirlik yolun her düğümünde geçerli
+        // olmalı, yoksa IDA* eşiği erken atlıyor.
+        var checked = 0
+        for seed in UInt64(1)...40 {
+            guard let board = randomBoard(seed: seed, colors: 5, empties: 2, depth: 26),
+                  let solution = Solver.solve(board) else { continue }
+            var state = board
+            for (index, move) in solution.enumerated() {
+                XCTAssertLessThanOrEqual(Solver.heuristic(state), solution.count - index,
+                                         "seed \(seed), adım \(index)")
+                state = state.applying(move)!
+                checked += 1
+            }
+        }
+        XCTAssertGreaterThan(checked, 100, "yeterli örnek doğrulanmadı")
+    }
+
     func testDugumButcesiAramayiSinirlar() {
         guard let board = randomBoard(seed: 3, colors: 8, empties: 2, depth: 120) else {
             return XCTFail("tahta üretilemedi")

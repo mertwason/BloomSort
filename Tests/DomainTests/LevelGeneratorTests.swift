@@ -7,16 +7,16 @@ final class LevelGeneratorTests: XCTestCase {
 
     func testZorlukBantlari() {
         XCTAssertEqual(Difficulty.band(for: 1).colors, 2...2)
-        XCTAssertEqual(Difficulty.band(for: 12).optimalMoves, 16...26)
+        XCTAssertEqual(Difficulty.band(for: 12).optimalMoves, 14...18)
         XCTAssertEqual(Difficulty.band(for: 300).colors, 9...12)
     }
 
     func testNefesSeviyeleriBandiDusurur() {
         XCTAssertTrue(Difficulty.isBreatherLevel(15))
         XCTAssertFalse(Difficulty.isBreatherLevel(16))
-        // 11-25 bandı 16...26; %60'ı 10...16.
-        XCTAssertEqual(Difficulty.optimalMoveRange(for: 15), 10...16)
-        XCTAssertEqual(Difficulty.optimalMoveRange(for: 16), 16...26)
+        // 11-25 bandı 14...18; %60'ı 8...11.
+        XCTAssertEqual(Difficulty.optimalMoveRange(for: 15), 8...11)
+        XCTAssertEqual(Difficulty.optimalMoveRange(for: 16), 14...18)
     }
 
     // MARK: - Parametreler

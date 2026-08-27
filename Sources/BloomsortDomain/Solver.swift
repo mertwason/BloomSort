@@ -16,7 +16,14 @@ import Foundation
 /// bu değeri en fazla 1 azaltabilir" özelliğini sağlar:
 ///
 /// 1. **Fazla blok sayısı:** Σ (kaptaki renk bloğu sayısı − 1)
-/// 2. **Dağılmış renk sayısı:** Σ_renk (o rengi içeren kap sayısı − 1)
+/// 2. **Bitmemiş kap sayısının yarısı:** ⌈(boş da olmayan, tek renkle dolu da
+///    olmayan kap sayısı) / 2⌉ — bir hamle en fazla iki kabı bitirebilir.
+///
+/// Bir zamanlar üçüncü bir terim daha vardı: Σ_renk (o rengi içeren kap
+/// sayısı − 1). **Kabul edilebilir değil** ve `SolverTests` bunu yakaladı:
+/// aynı renk iki ayrı kabı tam doldurarak da bitebiliyor (karışık kapasitede
+/// 6 tane sarı, iki adet 3'lük kabı doldurur), yani hedefte bu terim sıfır
+/// olmak zorunda değil. Kaldırıldı.
 public enum Solver {
     public struct Statistics: Sendable {
         public var nodes: Int
@@ -160,29 +167,21 @@ struct Search {
 
     static func heuristic(_ vessels: [UInt64]) -> Int {
         var extraRuns = 0
-        // Renk başına, o rengi içeren kap sayısı.
-        var vesselsPerColor = [Int](repeating: 0, count: 16)
+        var unfinished = 0
         for packed in vessels {
             let count = Position.count(packed)
             guard count > 0 else { continue }
             var runs = 1
-            var seenColors: UInt16 = 0
             var previous = Position.bead(packed, 0)
-            seenColors |= UInt16(1) << UInt16(previous)
             for index in 1..<count {
                 let color = Position.bead(packed, index)
                 if color != previous { runs += 1 }
-                seenColors |= UInt16(1) << UInt16(color)
                 previous = color
             }
             extraRuns += runs - 1
-            for color in 0..<16 where seenColors & (UInt16(1) << UInt16(color)) != 0 {
-                vesselsPerColor[color] += 1
-            }
+            if runs > 1 || count != Position.capacity(packed) { unfinished += 1 }
         }
-        var scattered = 0
-        for count in vesselsPerColor where count > 0 { scattered += count - 1 }
-        return max(extraRuns, scattered)
+        return max(extraRuns, (unfinished + 1) / 2)
     }
 
     // MARK: Hamle üretimi

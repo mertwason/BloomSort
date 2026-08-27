@@ -61,25 +61,27 @@ transposition table, düğüm bütçesi). Kesin optimal arama tahta zorlaştık�
 | Tahta | `M*` | Tipik süre |
 |---|---|---|
 | 4 renk / 6 kap | ~10 | < 1 ms |
-| 8 renk / 10 kap | ~25 | 10–100 ms |
-| 12 renk / 15 kap | ~30 | 0,5–2 sn |
-| 12 renk / 15 kap | ~36 | ~1 sn – dakikalar, sık sık düğüm bütçesini aşıyor |
-| 12 renk / 15 kap, tam karışık | 45+ | bütçe içinde çözülemiyor |
+| 8 renk / 10 kap | ~20 | 10–100 ms |
+| 12 renk / 15 kap | 26 | ~60 sn |
+| 12 renk / 15 kap | 29 | ~180 sn |
+| 12 renk / 15 kap | 35+ | düğüm bütçesi içinde çözülemiyor |
 
-**Karar:** `docs/gdd.md` §4.2'nin `M*` bantları 26. seviyeden itibaren
-düşürüldü, tavan 30. Zorluk renk sayısı, boş kap sayısı ve kapasite
-çeşitliliğiyle artmaya devam ediyor. Gerekçe GDD §4.2'deki nota işlendi.
-Bu tavanla 200 seviyenin tamamı üretilebiliyor ve her biri kesin optimal
-`M*` ile doğrulanıyor.
+**Karar:** `docs/gdd.md` §4.2'nin `M*` bantları 11. seviyeden itibaren yeniden
+ölçeklendi, tavan 26. Eğrinin şekli korundu; zorluk renk sayısı, boş kap sayısı
+ve kapasite çeşitliliğiyle artmaya devam ediyor. Gerekçe GDD §4.2'deki nota
+işlendi.
 
-Denenip **elenen** iki hızlandırma, ikisi de `SolverTests` tarafından
-yakalandı ve koda girmedi:
+Denenip **elenen** üç kısayol, üçü de `SolverTests` tarafından yakalandı ve
+koda girmedi:
 
 - *"Bir kabı çiçek açtıran hamle varsa yalnızca onu dene."* Bazı tahtalarda
   çözümü tamamen kesiyor.
 - *"Çiçek açmış kaptan hamle üretme."* Karışık kapasitede bir renk kendi
   adedinden küçük bir kabı doldurabiliyor; o kabın sonradan bozulması
   gerekebiliyor.
+- *Heuristiğe "dağılmış renk sayısı" terimi eklemek.* Kabul edilebilir değil:
+  aynı renk iki ayrı kabı tam doldurarak da bitebiliyor, yani hedefte bu terim
+  sıfır olmak zorunda değil. IDA*'ı optimalden uzun çözümlere itiyordu.
 
 ## Verilmiş kararlar
 
@@ -88,7 +90,8 @@ yakalandı ve koda girmedi:
   kapasitede seviye kazanılamaz hâle gelebiliyordu; bu da "kaybetme durumu
   yoktur" ile çelişiyordu. Kazanma koşulu: her kap ya boş ya tek renkle
   **dolu**. (Bkz. GDD §2.5 karar notu.)
-- **`M*` tavanı 30.** Yukarıdaki ölçüm gereği.
+- **`M*` tavanı 26.** Yukarıdaki ölçüm gereği; eğrinin şekli korunarak bütün
+  bantlar yeniden ölçeklendi.
 
 ## Hâlâ açık, uydurulmadı
 

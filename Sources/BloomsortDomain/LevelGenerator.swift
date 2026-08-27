@@ -24,6 +24,15 @@ public enum LevelGenerator {
     /// Bayat tahta filtresi: ilk 3 hamlede "otomatik" çözülen kap sayısı üst sınırı.
     public static let maximumEarlyCompletions = 1
 
+    /// Üretim sırasında çözücüye verilen düğüm bütçesi.
+    ///
+    /// Oyun içi varsayılandan (`Solver.defaultNodeLimit`) yüksek: İpucu'nun
+    /// milisaniyeler içinde dönmesi gerekiyor, üretimin ise çevrimdışı olarak
+    /// istediği kadar düşünme hakkı var. Bütçe darken 10-11 renkli tahtalarda
+    /// çözücü sık sık pes ediyor, ikili arama da kanıtlanamayan derinliklere
+    /// takılıp seed'i boşuna reddediyordu.
+    public static let solverNodeLimit = 8_000_000
+
     // MARK: - Genel üretim
 
     /// Verilen seviye numarası için kabul filtrelerinden geçen ilk seviyeyi üretir.
@@ -250,7 +259,8 @@ public enum LevelGenerator {
         // yeterince zor sayılır, ikili arama aşağı iner.
         func isHardEnough(_ index: Int) -> Bool {
             let state = Position(vessels: path[index]).gameState
-            guard let solution = Solver.solve(state, limit: band.upperBound) else { return true }
+            guard let solution = Solver.solve(state, limit: band.upperBound,
+                                              nodeLimit: solverNodeLimit) else { return true }
             return solution.count >= target
         }
 
@@ -263,7 +273,8 @@ public enum LevelGenerator {
         }
 
         let state = Position(vessels: path[low]).gameState
-        guard let solution = Solver.solve(state, limit: band.upperBound),
+        guard let solution = Solver.solve(state, limit: band.upperBound,
+                                          nodeLimit: solverNodeLimit),
               band.contains(solution.count) else { return nil }
         return (low, solution)
     }

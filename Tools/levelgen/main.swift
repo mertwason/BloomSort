@@ -85,7 +85,10 @@ if let verifyPath {
         guard board.vessels.map(\.capacity) == level.capacities else {
             fail("seviye \(level.id): yeniden kurulan kapasiteler kayıtla uyuşmuyor")
         }
-        guard let result = Solver.detailedSolve(board, limit: level.optimalMoves) else {
+        // Üretimdeki bütçenin aynısı; oyun içi varsayılan bütçe derin
+        // seviyeleri kanıtlamaya yetmiyor.
+        guard let result = Solver.detailedSolve(board, limit: level.optimalMoves,
+                                                nodeLimit: LevelGenerator.solverNodeLimit) else {
             fail("seviye \(level.id): çözülemedi")
         }
         guard result.optimalMoves == level.optimalMoves else {
