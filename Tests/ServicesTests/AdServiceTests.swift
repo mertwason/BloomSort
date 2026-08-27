@@ -95,3 +95,61 @@ final class AdServiceTests: XCTestCase {
         XCTAssertEqual(service.rewardedShown, [.hint])
     }
 }
+
+final class ConsentTests: XCTestCase {
+    func testATTBesinciSeviyeSonundaIsteniyor() {
+        for level in 1...4 {
+            XCTAssertFalse(TrackingPrompt.shouldRequest(afterCompletingLevel: level,
+                                                        alreadyRequested: false),
+                           "seviye \(level): erken istenmemeli")
+        }
+        XCTAssertTrue(TrackingPrompt.shouldRequest(afterCompletingLevel: 5, alreadyRequested: false))
+    }
+
+    func testATTBirKezIsteniyor() {
+        XCTAssertFalse(TrackingPrompt.shouldRequest(afterCompletingLevel: 9, alreadyRequested: true))
+    }
+
+    func testRizaAlinmadanReklamIstenmiyor() {
+        let consent = FakeConsentService()
+        consent.state.canRequestAds = false
+        XCTAssertFalse(consent.state.canRequestAds)
+    }
+}
+
+final class StoreTests: XCTestCase {
+    func testGeriYuklemeVar() async {
+        let store = FakeIAPService()
+        _ = await store.purchase(.removeAds)
+        let restored = await store.restorePurchases()
+        XCTAssertTrue(restored)
+        XCTAssertEqual(store.restoreCallCount, 1)
+    }
+
+    func testReklamsizSatinAlmaHakkiVeriyor() async {
+        let store = FakeIAPService()
+        XCTAssertFalse(store.hasRemoveAds)
+        _ = await store.purchase(.removeAds)
+        XCTAssertTrue(store.hasRemoveAds)
+    }
+
+    func testBaslangicPaketiDeReklamsizVeriyor() async {
+        let store = FakeIAPService()
+        _ = await store.purchase(.starter)
+        XCTAssertTrue(store.hasRemoveAds)
+    }
+
+    func testIptalEdilenSatinAlmaHakVermez() async {
+        let store = FakeIAPService()
+        store.nextOutcome = .cancelled
+        let outcome = await store.purchase(.removeAds)
+        XCTAssertEqual(outcome, .cancelled)
+        XCTAssertFalse(store.hasRemoveAds)
+    }
+
+    func testHataMesajlariSpecdekiMetinler() {
+        XCTAssertEqual(StoreMessage.purchaseFailed, "Satın alma tamamlanmadı. Ücret alınmadı.")
+        XCTAssertEqual(StoreMessage.restoreEmpty,
+                       "Bu Apple Kimliği'nde geri yüklenecek satın alma yok.")
+    }
+}
