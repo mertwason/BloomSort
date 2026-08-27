@@ -211,6 +211,29 @@ girdi: K (renk), E (boş kap), Cmix (kapasite dağılımı), R (karıştırma de
 > kap sayısı ve kapasite çeşitliliğiyle artmaya devam ediyor**. Ölçüm tablosu
 > `README.md`'de.
 
+> **Engel kuralları (karar, 27 Ağustos 2026).** Tablodaki dört mekaniğin
+> ikisi tek cümleyle geçiyordu; motorda şöyle uygulandı:
+>
+> - **Kapalı tomurcuk:** kilitli kap ne kaynak ne hedef olabilir. Sayaç,
+>   *başka* kaplara yerleşen tane sayısı kadar düşer. Kilidin mutlaka
+>   açılabilmesi için sayaç, o tahtanın optimal çözümünde taşınan toplam tane
+>   sayısını aşmayacak şekilde çekilir.
+> - **Çiy damlası:** donmuş tane taşınamaz; üstündeki taneler taşınabilir.
+>   "Üstüne 2 hamle" = **o kabı hedefleyen** iki hamle. İkincisinden sonra tane
+>   çözülür.
+> - **Rüzgâr:** her 5 hamlede bir, çizelgedeki iki kabın **üst taneleri** takas
+>   edilir. Taraflardan biri kilitliyse ya da üstü donmuşsa esme atlanır; biri
+>   boşsa diğerinin üst tanesi boş kaba geçer. **Tahta çözülmüşse rüzgâr
+>   esmez** — aksi hâlde bitmiş bir seviyeyi bozabilir, bu da "kaybetme yok"
+>   ile çelişirdi.
+> - **Arı bütçesi:** ayrı bir sayı değil, **2★ eşiğinin kendisi** (`M* × 1,25`).
+>   Bütçeyi aşmak tam olarak 1★'a düşmek demek; §3.5'teki "12/16" göstergesi
+>   bu iki sayıyı gösterir.
+>
+> Rüzgâr, hamle sayacını oyunun durumuna sokuyor: aynı tahta farklı sayaçta
+> aynı durum değil. Çözücü bunu hesaba katıyor ve rüzgârın heuristiği
+> düşürebilmesi için alt sınırı ayrıca gevşetiyor.
+
 **Kritik tasarım kuralı:** Rüzgâr rastgele **değildir**. Hangi iki kabın, kaçıncı hamlede yer değiştireceği üst barda bir rüzgâr göstergesiyle 3 hamle önceden bildirilir. Sürpriz ceza, "kontrol hissi" sözleşmesini bozar — ve bu sözleşme bozulduğunda ARPDAU düşer (Magic Sort vakası).
 
 **Zorluk zikzağı:** Her 5 seviyede bir kasıtlı **kolay seviye** (M* hedef bandın %60'ı). Sürekli tırmanış yorar; nefes alma seviyeleri D7'yi korur.

@@ -75,9 +75,15 @@ public enum Solver {
                                              seconds: seconds))
     }
 
+    /// Çözücünün ürettiği aday hamleler — yalnızca testler için.
+    static func candidateMovesForTesting(_ position: Position)
+        -> [(source: Int, destination: Int, count: Int)] {
+        Search.moves(position).map { ($0.source, $0.destination, $0.count) }
+    }
+
     /// Yalnızca alt sınır — testler ve teşhis için.
     public static func heuristic(_ state: GameState) -> Int {
-        Search.heuristic(Position(state).vessels)
+        Search.heuristic(Position(state))
     }
 }
 
@@ -111,13 +117,13 @@ struct Search {
         // ve eşik onu atlar, arama optimalden uzun bir çözüm döner. (Bu tam
         // olarak yaşandı; `SolverTests.testIDAStarOptimalCozumBulur` yakaladı.)
         // Hamle maliyeti 1 olduğu için birer birer artırmanın maliyeti düşük.
-        var threshold = Search.heuristic(root.vessels)
+        var threshold = Search.heuristic(root)
         while threshold <= limit {
             iterations += 1
             visited.removeAll(keepingCapacity: true)
             path.removeAll(keepingCapacity: true)
             truncated = false
-            if search(root.vessels, g: 0, threshold: threshold) { return path }
+            if search(root, g: 0, threshold: threshold) { return path }
             if exhaustedBudget { return nil }   // düğüm bütçesi doldu
             // Hiçbir dal eşik yüzünden kesilmediyse ulaşılabilir bütün
             // durumlar tarandı ve çözüm yok.
@@ -128,10 +134,10 @@ struct Search {
     }
 
     /// `f = g + h > threshold` olan dalları budayan derinlik öncelikli arama.
-    private mutating func search(_ vessels: [UInt64], g: Int, threshold: Int) -> Bool {
+    private mutating func search(_ position: Position, g: Int, threshold: Int) -> Bool {
         if nodes >= nodeLimit { exhaustedBudget = true; return false }
         nodes += 1
-        let h = Search.heuristic(vessels)
+        let h = Search.heuristic(position)
         let f = g + h
         if f > threshold {
             truncated = true
@@ -141,18 +147,17 @@ struct Search {
         // sıfır olduğu hâlde tahtanın bitmediği durumlar var (tek renkli ama
         // dolmamış kaplar), bu yüzden eşiği aşan derinlikte bir hedefe
         // rastlanabiliyor ve önce test edilirse optimalden uzun çözüm dönüyor.
-        if Position(vessels: vessels).isSolved { return true }
+        if position.isSolved { return true }
 
-        let key = vessels.sorted()
+        let key = position.canonicalKey
         if let seen = visited[key], seen <= g { return false }
         visited[key] = g
 
-        for candidate in Search.moves(vessels) {
-            var next = vessels
-            next[candidate.source] = Position.removingTop(next[candidate.source], candidate.count)
-            next[candidate.destination] = Position.appending(next[candidate.destination],
-                                                             color: candidate.color,
-                                                             n: candidate.count)
+        for candidate in Search.moves(position) {
+            let next = position.applying(source: candidate.source,
+                                         destination: candidate.destination,
+                                         count: candidate.count,
+                                         color: candidate.color)
             path.append(Move(source: candidate.source,
                              destination: candidate.destination,
                              count: candidate.count,
@@ -165,7 +170,24 @@ struct Search {
 
     // MARK: Heuristik
 
-    static func heuristic(_ vessels: [UInt64]) -> Int {
+    /// Rüzgâr, oyuncu hamlesi olmadan da tahtayı düzeltebiliyor: bir takas
+    /// heuristiği en fazla 2 azaltır (iki kabın üst tanesi değişir). Bu yüzden
+    /// alt sınır, "k hamle + o k hamlede esecek rüzgârlar" ile h'ye ulaşan en
+    /// küçük k'ye çekilir. Rüzgârsız tahtalarda `h`'nin kendisi döner.
+    static func heuristic(_ position: Position) -> Int {
+        let base = heuristic(vessels: position.vessels)
+        guard let wind = position.wind, base > 0 else { return base }
+        let alreadyBlown = min(wind.count, position.moveIndex / WindSchedule.interval)
+        var moves = 0
+        while moves < base {
+            let blown = min(wind.count, (position.moveIndex + moves) / WindSchedule.interval)
+            if base <= moves + 2 * (blown - alreadyBlown) { break }
+            moves += 1
+        }
+        return moves
+    }
+
+    static func heuristic(vessels: [UInt64]) -> Int {
         var extraRuns = 0
         var unfinished = 0
         for packed in vessels {
@@ -207,20 +229,28 @@ struct Search {
     /// optimali kestiğini gösterdi: karışık kapasitede bir renk kendi
     /// adedinden küçük bir kabı doldurabiliyor, o kabın sonradan bozulması
     /// gerekebiliyor. Bkz. README "Açık tasarım soruları".
-    static func moves(_ vessels: [UInt64]) -> [Candidate] {
+    static func moves(_ position: Position) -> [Candidate] {
+        let vessels = position.vessels
+        // Simetri budamaları kapları birbirinin yerine geçebilir sayıyor.
+        // Engel ya da rüzgâr varsa bu doğru değil: kabın kilidi, çiy sayacı ve
+        // rüzgâr çizelgesindeki yeri onu tekilleştiriyor.
+        let symmetryReduction = !position.hasObstacles && position.wind == nil
         var candidates: [Candidate] = []
         candidates.reserveCapacity(16)
         for source in vessels.indices {
             let sourcePacked = vessels[source]
             let sourceCount = Position.count(sourcePacked)
-            guard sourceCount > 0 else { continue }
+            guard sourceCount > 0, !position.isLocked(source) else { continue }
+            let movable = position.movableRunLength(source)
+            guard movable > 0 else { continue }
             let color = Position.bead(sourcePacked, sourceCount - 1)
-            let runLength = Position.topRunLength(sourcePacked)
+            let runLength = movable
             let sourceIsWholeRun = runLength == sourceCount
             let sourceCapacity = Position.capacity(sourcePacked)
             var triedEmptyCapacities: UInt16 = 0
 
             for destination in vessels.indices where destination != source {
+                guard !position.isLocked(destination) else { continue }
                 let destinationPacked = vessels[destination]
                 let free = Position.freeSpace(destinationPacked)
                 guard free > 0 else { continue }
@@ -228,10 +258,12 @@ struct Search {
                 let destinationCapacity = Position.capacity(destinationPacked)
 
                 if destinationCount == 0 {
-                    if sourceIsWholeRun && destinationCapacity == sourceCapacity { continue }
-                    let bit = UInt16(1) << UInt16(destinationCapacity)
-                    if triedEmptyCapacities & bit != 0 { continue }
-                    triedEmptyCapacities |= bit
+                    if symmetryReduction {
+                        if sourceIsWholeRun && destinationCapacity == sourceCapacity { continue }
+                        let bit = UInt16(1) << UInt16(destinationCapacity)
+                        if triedEmptyCapacities & bit != 0 { continue }
+                        triedEmptyCapacities |= bit
+                    }
                 } else if Position.bead(destinationPacked, destinationCount - 1) != color {
                     continue
                 }

@@ -12,12 +12,16 @@ public struct GameState: Equatable, Hashable, Sendable {
     public private(set) var beesUsed: Int
     /// Geri al zinciri.
     public private(set) var history: [Move]
+    /// **Rüzgâr** çizelgesi (§4.2, seviye 86+). `nil` ise tahtada rüzgâr yok.
+    public let wind: WindSchedule?
 
-    public init(vessels: [Vessel], moveCount: Int = 0, beesUsed: Int = 0, history: [Move] = []) {
+    public init(vessels: [Vessel], moveCount: Int = 0, beesUsed: Int = 0,
+                history: [Move] = [], wind: WindSchedule? = nil) {
         self.vessels = vessels
         self.moveCount = moveCount
         self.beesUsed = beesUsed
         self.history = history
+        self.wind = wind
     }
 
     /// Kapasiteler ve renk indeksleri üzerinden kısa kurucu — testler ve
@@ -29,8 +33,19 @@ public struct GameState: Equatable, Hashable, Sendable {
         })
     }
 
-    public static func == (lhs: GameState, rhs: GameState) -> Bool { lhs.vessels == rhs.vessels }
-    public func hash(into hasher: inout Hasher) { hasher.combine(vessels) }
+    /// Rüzgârsız tahtalarda pozisyon yalnızca kaplardan ibarettir. Rüzgâr
+    /// varsa hamle sayacı da pozisyonun parçasıdır: aynı tahta, farklı sayaç
+    /// → sıradaki rüzgâr farklı zamanda eser, dolayısıyla aynı durum değildir.
+    public static func == (lhs: GameState, rhs: GameState) -> Bool {
+        guard lhs.vessels == rhs.vessels, lhs.wind == rhs.wind else { return false }
+        return lhs.wind == nil || lhs.moveCount == rhs.moveCount
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(vessels)
+        hasher.combine(wind)
+        if wind != nil { hasher.combine(moveCount) }
+    }
 
     // MARK: - Sorgular
 
@@ -70,10 +85,16 @@ public struct GameState: Equatable, Hashable, Sendable {
     ///
     /// Yasal ⟺ kaynak boş değil **ve** hedef dolu değil **ve** (hedef boş
     /// **veya** hedefin üstü kaynağın üstüyle aynı renk).
+    ///
+    /// Engeller iki kısıt daha ekler: **kilitli kap** ne kaynak ne hedef
+    /// olabilir, **donmuş tane** taşınamaz (üstündekiler taşınabilir).
     public func isLegal(from source: Int, to destination: Int) -> Bool {
         guard source != destination,
               vessels.indices.contains(source),
               vessels.indices.contains(destination),
+              !vessels[source].isLocked,
+              !vessels[destination].isLocked,
+              vessels[source].movableRunLength > 0,
               let top = vessels[source].top,
               !vessels[destination].isFull
         else { return false }
@@ -81,10 +102,10 @@ public struct GameState: Equatable, Hashable, Sendable {
         return destinationTop.color == top.color
     }
 
-    /// Yasalsa hamleyi kurar: taşınan miktar = min(üst run uzunluğu, hedefteki boşluk).
+    /// Yasalsa hamleyi kurar: taşınan miktar = min(taşınabilir üst run, hedefteki boşluk).
     public func move(from source: Int, to destination: Int) -> Move? {
         guard isLegal(from: source, to: destination), let top = vessels[source].top else { return nil }
-        let count = min(vessels[source].topRunLength, vessels[destination].freeSpace)
+        let count = min(vessels[source].movableRunLength, vessels[destination].freeSpace)
         return Move(source: source, destination: destination, count: count, color: top.color)
     }
 
@@ -128,9 +149,13 @@ public struct GameState: Equatable, Hashable, Sendable {
     }
 
     /// Hamleyi uygular ve **yeni** bir tahta döner. Hamle yasal değilse `nil`.
+    ///
+    /// Hamleden sonra sırasıyla: hedefin çiy sayacı düşer, diğer kapların
+    /// kilit sayaçları taşınan tane kadar düşer, gerekiyorsa rüzgâr eser.
     public func applying(_ move: Move) -> GameState? {
         guard isLegal(from: move.source, to: move.destination),
-              vessels[move.source].topRunLength >= move.count,
+              move.count >= 1,
+              vessels[move.source].movableRunLength >= move.count,
               vessels[move.destination].freeSpace >= move.count,
               vessels[move.source].top?.color == move.color
         else { return nil }
@@ -138,8 +163,13 @@ public struct GameState: Equatable, Hashable, Sendable {
         var next = self
         let beads = next.vessels[move.source].removeTop(move.count)
         next.vessels[move.destination].append(beads)
+        next.vessels[move.destination].registerIncomingMove()
+        for index in next.vessels.indices where index != move.destination {
+            next.vessels[index].registerElsewherePlacement(move.count)
+        }
         next.moveCount += 1
         next.history.append(move)
+        next.applyWindIfDue()
         return next
     }
 
@@ -149,18 +179,50 @@ public struct GameState: Equatable, Hashable, Sendable {
         return applying(move)
     }
 
-    /// Son hamleyi geri alır. Hamle geçmişi boşsa `nil`.
+    // MARK: - Rüzgâr
+
+    /// Bu hamleden sonra rüzgâr esiyorsa iki kabın üst tanelerini takas eder.
     ///
-    /// Geri al, hamlenin tersini uygulayarak çalışır: taşınan taneler hedefin
-    /// ağzında hâlâ üst üste durduğu için ters hamle daima yasaldır.
-    public func undoing() -> GameState? {
-        guard let last = history.last else { return nil }
-        var previous = self
-        let beads = previous.vessels[last.destination].removeTop(last.count)
-        previous.vessels[last.source].append(beads)
-        previous.moveCount -= 1
-        previous.history.removeLast()
-        return previous
+    /// Takas atlanır: kaplardan biri kilitliyse, üstteki tane donmuşsa ya da
+    /// ikisi de boşsa. Biri boşsa diğerinin üst tanesi boş kaba geçer.
+    private mutating func applyWindIfDue() {
+        guard let wind, WindSchedule.blows(afterMoveCount: moveCount) else { return }
+        // Seviye bittiyse rüzgâr esmez: son hamle tahtayı bitirdiyse oyun orada
+        // kapanır, aksi hâlde rüzgâr bitmiş bir tahtayı bozabilirdi.
+        guard !isSolved else { return }
+        let event = WindSchedule.eventIndex(afterMoveCount: moveCount)
+        guard wind.pairs.indices.contains(event) else { return }
+        let pair = wind.pairs[event]
+        guard vessels.indices.contains(pair.first), vessels.indices.contains(pair.second) else { return }
+        guard !vessels[pair.first].isLocked, !vessels[pair.second].isLocked else { return }
+        guard !vessels[pair.first].isTopFrozen, !vessels[pair.second].isTopFrozen else { return }
+
+        switch (vessels[pair.first].top, vessels[pair.second].top) {
+        case (nil, nil):
+            return
+        case (let first?, nil):
+            let taken = vessels[pair.first].forceRemoveTop(1)
+            vessels[pair.second].append(taken)
+            _ = first
+        case (nil, let second?):
+            let taken = vessels[pair.second].forceRemoveTop(1)
+            vessels[pair.first].append(taken)
+            _ = second
+        case (_?, _?):
+            let firstTop = vessels[pair.first].forceRemoveTop(1)
+            let secondTop = vessels[pair.second].forceRemoveTop(1)
+            vessels[pair.first].append(secondTop)
+            vessels[pair.second].append(firstTop)
+        }
+    }
+
+    /// Sıradaki rüzgâr — üst bardaki gösterge için (`docs/ui-spec.md` §3.5).
+    /// Yalnızca `WindSchedule.announceLead` hamle kala gösterilir.
+    public var announcedWind: (pair: WindSchedule.Pair, movesAway: Int)? {
+        guard let wind, let upcoming = wind.upcoming(atMoveCount: moveCount),
+              upcoming.movesAway <= WindSchedule.announceLead
+        else { return nil }
+        return upcoming
     }
 
     /// Tahtaya bir arı salar: verilen kapasitede boş bir kap eklenir

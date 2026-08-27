@@ -114,28 +114,74 @@ final class GameStateTests: XCTestCase {
 
     func testGeriAlSonHamleyiAlir() {
         let state = GameState(capacities: [4, 4], contents: [[0, 1, 1], []])
-        let next = state.applying(from: 0, to: 1)!
-        let back = next.undoing()!
-        XCTAssertEqual(back, state)
-        XCTAssertEqual(back.moveCount, 0)
-        XCTAssertTrue(back.history.isEmpty)
+        var stack = UndoStack(state)
+        XCTAssertTrue(stack.apply(from: 0, to: 1))
+        XCTAssertTrue(stack.undo())
+        XCTAssertEqual(stack.current, state)
+        XCTAssertEqual(stack.current.moveCount, 0)
+        XCTAssertFalse(stack.canUndo)
     }
 
     func testGeriAlZinciri() {
-        var state = GameState(capacities: [4, 4, 4], contents: [[0, 1, 1], [1], []])
-        let original = state
-        state = state.applying(from: 0, to: 1)!
-        state = state.applying(from: 0, to: 2)!
-        state = state.applying(from: 2, to: 0)!
-        XCTAssertEqual(state.moveCount, 3)
-        for _ in 0..<3 { state = state.undoing()! }
-        XCTAssertEqual(state, original)
-        XCTAssertNil(state.undoing(), "geçmiş boşken geri al yok")
+        let original = GameState(capacities: [4, 4, 4], contents: [[0, 1, 1], [1], []])
+        var stack = UndoStack(original)
+        XCTAssertTrue(stack.apply(from: 0, to: 1))
+        XCTAssertTrue(stack.apply(from: 0, to: 2))
+        XCTAssertTrue(stack.apply(from: 2, to: 0))
+        XCTAssertEqual(stack.current.moveCount, 3)
+        XCTAssertEqual(stack.undoCount, 3)
+        for _ in 0..<3 { XCTAssertTrue(stack.undo()) }
+        XCTAssertEqual(stack.current, original)
+        XCTAssertFalse(stack.undo(), "geçmiş boşken geri al yok")
     }
 
     func testGecmisiBosTahtadaGeriAlYok() {
-        let state = GameState(capacities: [4], contents: [[0]])
-        XCTAssertNil(state.undoing())
+        var stack = UndoStack(GameState(capacities: [4], contents: [[0]]))
+        XCTAssertFalse(stack.canUndo)
+        XCTAssertFalse(stack.undo())
+    }
+
+    func testSifirlaBaslangicaDoner() {
+        let original = GameState(capacities: [4, 4, 4], contents: [[0, 1, 1], [1], []])
+        var stack = UndoStack(original)
+        stack.apply(from: 0, to: 1)
+        stack.apply(from: 0, to: 2)
+        stack.reset()
+        XCTAssertEqual(stack.current, original)
+        XCTAssertFalse(stack.canUndo)
+    }
+
+    func testYasadisiHamleTahtayiDegistirmez() {
+        let original = GameState(capacities: [2, 2], contents: [[0, 1], [1, 0]])
+        var stack = UndoStack(original)
+        XCTAssertFalse(stack.apply(from: 0, to: 1))
+        XCTAssertEqual(stack.current, original)
+        XCTAssertFalse(stack.canUndo)
+    }
+
+    func testAriGeriAlinabilir() {
+        var stack = UndoStack(GameState(capacities: [4], contents: [[0, 1]]))
+        XCTAssertTrue(stack.addBee(capacity: 4))
+        XCTAssertEqual(stack.current.vessels.count, 2)
+        XCTAssertTrue(stack.undo())
+        XCTAssertEqual(stack.current.vessels.count, 1)
+    }
+
+    func testSikismadaGeriAlOnerilir() {
+        // Tek boş yuvayı doldurmak tahtayı çıkmaza sokuyor.
+        let start = GameState(capacities: [3, 3, 2, 1],
+                              contents: [[1, 2, 0], [0, 0, 1], [2, 1], []])
+        var stack = UndoStack(start)
+        XCTAssertFalse(start.isStuck)
+        XCTAssertFalse(stack.shouldSuggestUndo, "geri alınacak hamle yokken öneri de yok")
+
+        XCTAssertTrue(stack.apply(from: 0, to: 3))
+        XCTAssertTrue(stack.current.isStuck, "tek boş yuva dolunca hamle kalmıyor")
+        XCTAssertTrue(stack.shouldSuggestUndo)
+
+        XCTAssertTrue(stack.undo())
+        XCTAssertFalse(stack.current.isStuck)
+        XCTAssertFalse(stack.shouldSuggestUndo)
     }
 
     // MARK: - Kazanma
@@ -224,7 +270,10 @@ final class GameStateTests: XCTestCase {
 
     func testEsitlikYalnizcaTahtayaBakar() {
         let a = GameState(capacities: [4, 4], contents: [[0, 0], []])
-        let b = a.applying(from: 0, to: 1)!.undoing()!
+        var stack = UndoStack(a)
+        stack.apply(from: 0, to: 1)
+        stack.undo()
+        let b = stack.current
         XCTAssertEqual(a, b)
         XCTAssertEqual(a.hashValue, b.hashValue)
     }

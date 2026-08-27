@@ -11,18 +11,21 @@ public struct DifficultyBand: Sendable, Hashable {
     /// Kapasite havuzu; tek elemanlıysa sabit kapasite demektir.
     public let capacityPool: [Int]
     public let optimalMoves: ClosedRange<Int>
-    /// Bu bantta devreye giren yeni mekanik (henüz uygulanmadı, bkz. README).
-    public let newMechanic: String?
+    /// Bu bantta devreye giren yeni mekanik.
+    public let mechanic: ObstacleKind?
+
+    /// Tabloda yazan mekanik adı.
+    public var newMechanic: String? { mechanic?.turkishName }
 
     public init(levels: ClosedRange<Int>, colors: ClosedRange<Int>,
                 emptyVessels: ClosedRange<Int>, capacityPool: [Int],
-                optimalMoves: ClosedRange<Int>, newMechanic: String? = nil) {
+                optimalMoves: ClosedRange<Int>, mechanic: ObstacleKind? = nil) {
         self.levels = levels
         self.colors = colors
         self.emptyVessels = emptyVessels
         self.capacityPool = capacityPool
         self.optimalMoves = optimalMoves
-        self.newMechanic = newMechanic
+        self.mechanic = mechanic
     }
 }
 
@@ -49,15 +52,15 @@ public enum Difficulty {
         DifficultyBand(levels: 11...25,    colors: 5...7,  emptyVessels: 2...2, capacityPool: [4],
                        optimalMoves: 14...18),
         DifficultyBand(levels: 26...40,    colors: 6...8,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 17...21, newMechanic: "Kapasite çeşitliliği"),
+                       optimalMoves: 17...21, mechanic: nil),
         DifficultyBand(levels: 41...60,    colors: 7...9,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 19...22, newMechanic: "Kapalı tomurcuk"),
+                       optimalMoves: 19...22, mechanic: .closedBud),
         DifficultyBand(levels: 61...85,    colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 19...22, newMechanic: "Çiy damlası"),
+                       optimalMoves: 19...22, mechanic: .dewDrop),
         DifficultyBand(levels: 86...115,   colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 19...22, newMechanic: "Rüzgâr"),
+                       optimalMoves: 19...22, mechanic: .wind),
         DifficultyBand(levels: 116...150,  colors: 9...11, emptyVessels: 3...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 19...22, newMechanic: "Arı bütçesi"),
+                       optimalMoves: 19...22, mechanic: .beeBudget),
         DifficultyBand(levels: 151...9999, colors: 9...12, emptyVessels: 2...4, capacityPool: [3, 4, 5, 6],
                        optimalMoves: 19...22),
     ]
@@ -66,6 +69,41 @@ public enum Difficulty {
         precondition(level >= 1, "Seviye numarası 1'den başlar")
         return bands.first { $0.levels.contains(level) } ?? bands[bands.count - 1]
     }
+
+    /// Seviyede hangi engeller var.
+    ///
+    /// Her bant kendi mekaniğini getirir (§4.2 "Yeni mekanik" sütunu). 151.
+    /// seviyeden sonra §4.2 "her 15 seviyede engel kombinasyonu rotasyonu"
+    /// diyor: tahtayı etkileyen üç mekaniğin boş olmayan kombinasyonları
+    /// sırayla dönüyor.
+    ///
+    /// **Arı bütçesi** tahtayı değiştirmez — yumuşak hamle limiti, yani 2★
+    /// eşiği (bkz. `Level.moveBudget`). 116. seviyeden itibaren her seviyede
+    /// gösterilir, o yüzden listede sabit durur.
+    public static func obstacles(for level: Int) -> [ObstacleKind] {
+        var kinds: [ObstacleKind] = []
+        if level >= 116 { kinds.append(.beeBudget) }
+        guard level >= 151 else {
+            if let mechanic = band(for: level).mechanic, mechanic != .beeBudget {
+                kinds.append(mechanic)
+            }
+            return kinds
+        }
+        let rotation = boardObstacleRotation[((level - 151) / 15) % boardObstacleRotation.count]
+        kinds.append(contentsOf: rotation)
+        return kinds
+    }
+
+    /// Tahtayı etkileyen mekaniklerin rotasyonu (§4.2, seviye 151+).
+    static let boardObstacleRotation: [[ObstacleKind]] = [
+        [.closedBud],
+        [.dewDrop],
+        [.wind],
+        [.closedBud, .dewDrop],
+        [.dewDrop, .wind],
+        [.closedBud, .wind],
+        [.closedBud, .dewDrop, .wind],
+    ]
 
     /// Zorluk zikzağı: her 5 seviyede bir kasıtlı nefes seviyesi
     /// (bkz. `docs/gdd.md` §4.2 — "M* hedef bandın %60'ı").

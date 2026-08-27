@@ -158,6 +158,81 @@ final class SolverTests: XCTestCase {
         XCTAssertGreaterThan(checked, 100, "yeterli örnek doğrulanmadı")
     }
 
+    // MARK: - Engelli tahtalar
+
+    /// Engelli tahtalarda da IDA* optimali bulmalı: kilit ve çiy sayaçları
+    /// hamle uzunluğunu değiştiriyor, rüzgâr ise heuristiğin alt sınırını.
+    func testEngelliTahtalardaOptimalBulunuyor() {
+        var checked = 0
+        for seed in UInt64(1)...50 {
+            var rng = SplitMix64(seed: seed)
+            let colors = 3
+            let capacities = (0..<(colors + 2)).map { _ in rng.pick([3, 4]) }
+            let parameters = LevelGenerator.Parameters(level: 1, seed: seed, colors: colors,
+                                                       emptyVessels: 2, capacities: capacities)
+            guard let plain = LevelGenerator.scrambledBoard(parameters: parameters,
+                                                            reverseMoves: 14, rng: &rng) else { continue }
+            // Bir kaba kilit, bir kaba çiy koy.
+            var vessels = plain.vessels
+            if let lockTarget = vessels.indices.first(where: { vessels[$0].isEmpty }) {
+                vessels[lockTarget] = vessels[lockTarget].settingObstacles(lockCountdown: 2)
+            }
+            if let dewTarget = vessels.indices.first(where: { vessels[$0].count >= 2 }) {
+                vessels[dewTarget] = vessels[dewTarget].settingObstacles(dewIndex: 0, dewCountdown: 1)
+            }
+            let board = GameState(vessels: vessels)
+            guard let reference = breadthFirstOptimal(board, limit: 18) else { continue }
+            XCTAssertEqual(Solver.solve(board)?.count, reference, "seed \(seed)")
+            checked += 1
+        }
+        XCTAssertGreaterThan(checked, 15, "yeterli örnek doğrulanmadı")
+    }
+
+    func testRuzgarliTahtalardaOptimalBulunuyor() {
+        var checked = 0
+        for seed in UInt64(1)...40 {
+            var rng = SplitMix64(seed: seed &* 3)
+            let capacities = (0..<5).map { _ in rng.pick([3, 4]) }
+            let parameters = LevelGenerator.Parameters(level: 1, seed: seed, colors: 3,
+                                                       emptyVessels: 2, capacities: capacities)
+            guard let plain = LevelGenerator.scrambledBoard(parameters: parameters,
+                                                            reverseMoves: 12, rng: &rng) else { continue }
+            let pairs = (0..<4).map { _ -> WindSchedule.Pair in
+                let first = rng.int(below: plain.vessels.count)
+                var second = rng.int(below: plain.vessels.count - 1)
+                if second >= first { second += 1 }
+                return WindSchedule.Pair(first, second)
+            }
+            let board = GameState(vessels: plain.vessels, wind: WindSchedule(pairs: pairs))
+            guard let reference = breadthFirstOptimal(board, limit: 16) else { continue }
+            XCTAssertEqual(Solver.solve(board)?.count, reference, "seed \(seed)")
+            checked += 1
+        }
+        XCTAssertGreaterThan(checked, 10, "yeterli örnek doğrulanmadı")
+    }
+
+    func testRuzgarliHeuristikKabulEdilebilir() {
+        // Rüzgâr, oyuncu hamlesi olmadan da heuristiği düşürebiliyor; alt sınır
+        // bunu hesaba katmazsa IDA* optimalden uzun çözüm döner.
+        for seed in UInt64(1)...30 {
+            var rng = SplitMix64(seed: seed &* 11)
+            let capacities = (0..<5).map { _ in rng.pick([3, 4]) }
+            let parameters = LevelGenerator.Parameters(level: 1, seed: seed, colors: 3,
+                                                       emptyVessels: 2, capacities: capacities)
+            guard let plain = LevelGenerator.scrambledBoard(parameters: parameters,
+                                                            reverseMoves: 12, rng: &rng) else { continue }
+            let pairs = (0..<4).map { _ in WindSchedule.Pair(0, 1) }
+            let board = GameState(vessels: plain.vessels, wind: WindSchedule(pairs: pairs))
+            guard let solution = Solver.solve(board, limit: 16) else { continue }
+            var state = board
+            for (index, move) in solution.enumerated() {
+                XCTAssertLessThanOrEqual(Solver.heuristic(state), solution.count - index,
+                                         "seed \(seed), adım \(index)")
+                state = state.applying(move)!
+            }
+        }
+    }
+
     func testDugumButcesiAramayiSinirlar() {
         guard let board = randomBoard(seed: 3, colors: 8, empties: 2, depth: 120) else {
             return XCTFail("tahta üretilemedi")

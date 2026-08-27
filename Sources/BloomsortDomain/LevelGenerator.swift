@@ -80,8 +80,43 @@ public enum LevelGenerator {
         guard let hit = depthReaching(path: path, target: target, band: band) else {
             return .failure(.optimalOutOfBand)
         }
-        let state = Position(vessels: path[hit.depth]).gameState
-        let solution = hit.solution
+
+        // Engelleri koy ve M*'ı engellerle yeniden ölç (§4.2 "Yeni mekanik").
+        //
+        // Engeller M*'ı yukarı iter, çoğu zaman bandın dışına. Bu yüzden
+        // engelsiz aramanın bulduğu derinlikten geriye doğru kısa bir tarama
+        // yapılıyor: engellerle birlikte banda oturan ilk derinlik kabul
+        // ediliyor. Bandı düşürmek yerine tahtayı biraz daha az karıştırmak,
+        // zorluğu engelin kendisine bırakıyor.
+        let kinds = Difficulty.obstacles(for: level)
+        let hasBoardObstacles = kinds.contains { $0 != .beeBudget }
+        var chosenDepth = hit.depth
+        var layout = ObstacleLayout.none
+        var solution = hit.solution
+        var state = Position(vessels: path[hit.depth]).gameState
+
+        if hasBoardObstacles {
+            var landed = false
+            let lowest = max(band.lowerBound, hit.depth - descentScan)
+            for depth in stride(from: hit.depth, through: lowest, by: -1) {
+                let plain = Position(vessels: path[depth]).gameState
+                guard let plainSolution = Solver.solve(plain, limit: band.upperBound,
+                                                       nodeLimit: solverNodeLimit) else { continue }
+                let candidate = obstacleLayout(for: level, board: plain,
+                                               plainSolution: plainSolution, rng: &rng)
+                let board = candidate.applied(to: plain)
+                guard let withObstacles = Solver.solve(board, limit: band.upperBound,
+                                                       nodeLimit: solverNodeLimit),
+                      band.contains(withObstacles.count) else { continue }
+                chosenDepth = depth
+                layout = candidate
+                solution = withObstacles
+                state = board
+                landed = true
+                break
+            }
+            guard landed else { return .failure(.optimalOutOfBand) }
+        }
 
         // 5. adım, kabul filtreleri
         guard earlyCompletions(state, solution: solution) <= maximumEarlyCompletions else {
@@ -95,10 +130,69 @@ public enum LevelGenerator {
                               colors: parameters.colors,
                               emptyVessels: parameters.emptyVessels,
                               capacities: parameters.capacities,
-                              reverseMoves: hit.depth,
+                              reverseMoves: chosenDepth,
                               optimalMoves: solution.count,
-                              branchingFactor: branching))
+                              branchingFactor: branching,
+                              obstacles: layout))
     }
+
+    /// Seviyenin bandına göre engelleri yerleştirir.
+    ///
+    /// Sayılar uydurulmadı: çiy sayacı §4.2'nin verdiği 2, kilit sayacı
+    /// tahtanın kendisinden türetiliyor (optimal çözümde yerleşen tane sayısı
+    /// kadar bir aralıktan), rüzgâr olay sayısı da bandın üst sınırından.
+    static func obstacleLayout(for level: Int, board: GameState,
+                               plainSolution: [Move], rng: inout SplitMix64) -> ObstacleLayout {
+        let kinds = Difficulty.obstacles(for: level)
+        var lockedVessel: Int?
+        var lockCountdown = 0
+        var dewVessel: Int?
+        var dewBead: Int?
+        var dewCountdown = 0
+        var windPairs: [WindSchedule.Pair] = []
+
+        if kinds.contains(.closedBud) {
+            // Kilitlenecek kap: tercihen boş olmayan bir kap, yoksa herhangi biri.
+            let candidates = board.vessels.indices.filter { !board.vessels[$0].isEmpty }
+            let pool = candidates.isEmpty ? Array(board.vessels.indices) : candidates
+            lockedVessel = pool[rng.int(below: pool.count)]
+            // "X polen başka yere yerleşince açılır": X, optimal çözümde
+            // taşınan toplam tane sayısını aşmasın ki kilit mutlaka açılabilsin.
+            let placedInSolution = max(1, plainSolution.reduce(0) { $0 + $1.count })
+            lockCountdown = rng.int(in: 1...placedInSolution)
+        }
+
+        if kinds.contains(.dewDrop) {
+            let candidates = board.vessels.indices.filter { !board.vessels[$0].isEmpty }
+            if !candidates.isEmpty {
+                let vessel = candidates[rng.int(below: candidates.count)]
+                dewVessel = vessel
+                dewBead = rng.int(below: board.vessels[vessel].count)
+                dewCountdown = dewMeltMoves
+            }
+        }
+
+        if kinds.contains(.wind), board.vessels.count >= 2 {
+            // Çözümün tamamını kapsayacak kadar olay: bandın üst sınırı kadar
+            // hamlede kaç kez eserse o kadar, bir de pay.
+            let events = Difficulty.band(for: level).optimalMoves.upperBound
+                / WindSchedule.interval + 2
+            for _ in 0..<events {
+                let first = rng.int(below: board.vessels.count)
+                var second = rng.int(below: board.vessels.count - 1)
+                if second >= first { second += 1 }
+                windPairs.append(WindSchedule.Pair(first, second))
+            }
+        }
+
+        return ObstacleLayout(lockedVessel: lockedVessel, lockCountdown: lockCountdown,
+                              dewVessel: dewVessel, dewBead: dewBead, dewCountdown: dewCountdown,
+                              windPairs: windPairs)
+    }
+
+    /// Çiy damlasının çözülmesi için gereken hamle sayısı — §4.2: "üstüne 2
+    /// hamle yapılınca çözülür".
+    public static let dewMeltMoves = 2
 
     /// Yürüyüş derinliği: hedef bandın üst sınırının katı.
     ///
@@ -119,7 +213,8 @@ public enum LevelGenerator {
         let path = reverseWalk(parameters: parameters, depth: level.reverseMoves, rng: &rng)
         precondition(path.count == level.reverseMoves + 1,
                      "Kaydedilmiş seviye yeniden kurulamadı: \(level.id)")
-        return Position(vessels: path[level.reverseMoves]).gameState
+        let plain = Position(vessels: path[level.reverseMoves]).gameState
+        return level.obstacles.applied(to: plain)
     }
 
     // MARK: - Parametreler
