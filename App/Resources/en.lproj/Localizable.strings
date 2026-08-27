@@ -1,0 +1,72 @@
+/* Bloomsort — English. Keys are the Turkish source strings. */
+
+/* Game screen */
+"Ara" = "Pause";
+"Ara ver" = "Pause";
+"Oyun tahtası" = "Game board";
+"Geri al" = "Undo";
+"İpucu" = "Hint";
+"Sıfırla" = "Reset";
+"Arı" = "Bee";
+"Devam" = "Resume";
+"Seviyeye baştan başla" = "Restart level";
+"Patikaya dön" = "Back to Path";
+"Bu tahta çıkmaza girdi. Son hamleni geri aldık." = "This board is stuck. We undid your last move.";
+"Geri al hakkın bitti. Ödüllü videoyla 3 hak alabilirsin." = "You're out of undos. Watch a video for 3 more.";
+"İpucu hakkın bitti. Ödüllü videoyla bir tane daha alabilirsin." = "You're out of hints. Watch a video for one more.";
+"Bu tahtada ipucu bulunamadı." = "No hint found for this board.";
+"Arın kalmadı. Kovan'dan alabilir ya da video izleyebilirsin." = "You're out of bees. Get more from the Hive or watch a video.";
+
+/* Level complete */
+"Ödülü ikiye katla" = "Double your reward";
+"Sıradaki seviye" = "Next level";
+"Herbaryum'a bak" = "Open Herbarium";
+
+/* Tabs and meta */
+"Patika" = "Path";
+"Herbaryum" = "Herbarium";
+"Bahçem" = "My Garden";
+"Kovan" = "Hive";
+"Oyna" = "Play";
+"Ayarlar" = "Settings";
+"Bahçem'in etkileşimli modu v1.1'de." = "The interactive garden arrives in v1.1.";
+
+/* Store */
+"Reklamsız" = "Remove Ads";
+"Interstitial ve banner reklamlar kapanır. Ödüllü videoların verdiği her şey tek dokunuşla ücretsiz gelir." = "Interstitial and banner ads are turned off. Everything rewarded videos give you comes free with a single tap.";
+"Satın alındı" = "Purchased";
+"Satın almaları geri yükle" = "Restore purchases";
+"Satın almaların geri yüklendi." = "Your purchases have been restored.";
+"Satın alma onay bekliyor." = "Purchase is awaiting approval.";
+"Satın alma tamamlanmadı. Ücret alınmadı." = "The purchase did not go through. You were not charged.";
+"Bu Apple Kimliği'nde geri yüklenecek satın alma yok." = "There are no purchases to restore on this Apple ID.";
+
+/* Settings */
+"Oyun" = "Game";
+"Ses" = "Sound";
+"Müzik" = "Music";
+"Haptik" = "Haptics";
+"Azaltılmış hareket" = "Reduce motion";
+"Renk körlüğü modu" = "Colour-blind mode";
+"Renk körlüğü" = "Colour-blind";
+"Hesap" = "Account";
+"İlerlemeyi sıfırla" = "Reset progress";
+"Bütün seviyeler, levhalar ve tohumlar silinir. Geri alınamaz." = "All levels, plates and seeds will be deleted. This cannot be undone.";
+"Gizlilik" = "Privacy";
+"Reklam tercihlerini yönet" = "Manage ad preferences";
+"Gizlilik politikası" = "Privacy policy";
+"Kullanım koşulları" = "Terms of use";
+"Hakkında" = "About";
+"Sürüm" = "Version";
+"İletişim" = "Contact";
+"Kapat" = "Close";
+"Vazgeç" = "Cancel";
+
+/* Empty states (§6) */
+"Henüz levha yok. İlk seviyeyi bitir, ilki preslensin." = "No plates yet. Finish your first level and the first one gets pressed.";
+"Patika'ya git" = "Go to Path";
+"Bir albüm tamamla, bahçene ilk bitkin dikilsin." = "Complete an album to plant your first flower.";
+"Herbaryum'a git" = "Go to Herbarium";
+"Çevrimdışısın. Oynamaya devam edebilirsin; ilerlemen cihazında saklanıyor." = "You're offline. You can keep playing; your progress is stored on your device.";
+"Şu an gösterilecek reklam yok. Ödülü yine de aldın." = "No ad available right now. You get the reward anyway.";
+"Şu an gösterilecek reklam yok. Birazdan tekrar dene." = "No ad available right now. Try again shortly.";

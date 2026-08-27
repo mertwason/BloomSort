@@ -29,3 +29,28 @@ jobs:
       # baştan sona oynanır. Bir seviye bile çözülemezse iş kırmızı olur.
       - name: levels.json çözülebilirlik
         run: .build/release/levelgen --verify Resources/levels.json
+
+  ios:
+    name: iOS derleme
+    runs-on: macos-15
+    # ⚠️ Bu iş henüz gerçek bir Mac'te doğrulanmadı: SpriteKit ve SwiftUI
+    # katmanları Linux'ta derlenemediği için buradaki tek doğrulama noktası.
+    # İlk yeşil koşudan sonra continue-on-error kaldırılmalı.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode 26 seç
+        run: sudo xcode-select -s /Applications/Xcode_26.app || echo "Xcode 26 yok, varsayılan kullanılıyor"
+      - name: XcodeGen
+        run: brew install xcodegen
+      - name: Proje üret
+        working-directory: App
+        run: xcodegen generate
+      - name: Derle
+        working-directory: App
+        run: |
+          xcodebuild build \
+            -project Bloomsort.xcodeproj \
+            -scheme Bloomsort \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>tr</string>
+	<key>CFBundleDisplayName</key>
+	<string>Bloomsort</string>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+
+	<!-- İhracat uyumluluğu: yalnızca standart HTTPS (checklist Faz 9). -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!-- ATT metni. İzin 5. seviye sonunda isteniyor, açılışta değil (§6.6).
+	     Metin İngilizcesi en.lproj/InfoPlist.strings içinde. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>İzin verirsen sana daha uygun reklamlar gösterebiliriz. Oyun bu izin olmadan da tam olarak çalışır.</string>
+
+	<!-- ⚠️ GERÇEK DEĞER GEREKLİ: AdMob App ID (ca-app-pub-XXXXX~YYYYY).
+	     Buradaki değer kasten geçersiz; gerçek ID girilmeden reklam SDK'sı
+	     başlamaz ve hata verir. Test ad unit'leriyle gönderim = red
+	     (checklist Faz 4.2). -->
+	<key>GADApplicationIdentifier</key>
+	<string>REPLACE_WITH_REAL_ADMOB_APP_ID</string>
+
+	<!-- SKAdNetwork: Google'ın kendi ID'si. Google'ın yayımladığı üçüncü
+	     taraf alıcı listesi ve mediation ağlarının ID'leri buraya eklenmeli;
+	     eksikse reklam veren ölçemez, eCPM düşer (checklist Faz 4.2). -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
+</dict>
+</plist>

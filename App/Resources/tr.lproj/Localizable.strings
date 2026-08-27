@@ -1,0 +1,74 @@
+/* Bloomsort — Türkçe (geliştirme dili).
+   Anahtarlar Türkçe metnin kendisi: SwiftUI `Text("...")` zaten
+   LocalizedStringKey alıyor, o yüzden kodda ek sarmalayıcı yok. */
+
+/* Oyun ekranı */
+"Ara" = "Ara";
+"Ara ver" = "Ara ver";
+"Oyun tahtası" = "Oyun tahtası";
+"Geri al" = "Geri al";
+"İpucu" = "İpucu";
+"Sıfırla" = "Sıfırla";
+"Arı" = "Arı";
+"Devam" = "Devam";
+"Seviyeye baştan başla" = "Seviyeye baştan başla";
+"Patikaya dön" = "Patikaya dön";
+"Bu tahta çıkmaza girdi. Son hamleni geri aldık." = "Bu tahta çıkmaza girdi. Son hamleni geri aldık.";
+"Geri al hakkın bitti. Ödüllü videoyla 3 hak alabilirsin." = "Geri al hakkın bitti. Ödüllü videoyla 3 hak alabilirsin.";
+"İpucu hakkın bitti. Ödüllü videoyla bir tane daha alabilirsin." = "İpucu hakkın bitti. Ödüllü videoyla bir tane daha alabilirsin.";
+"Bu tahtada ipucu bulunamadı." = "Bu tahtada ipucu bulunamadı.";
+"Arın kalmadı. Kovan'dan alabilir ya da video izleyebilirsin." = "Arın kalmadı. Kovan'dan alabilir ya da video izleyebilirsin.";
+
+/* Seviye bitiş */
+"Ödülü ikiye katla" = "Ödülü ikiye katla";
+"Sıradaki seviye" = "Sıradaki seviye";
+"Herbaryum'a bak" = "Herbaryum'a bak";
+
+/* Sekmeler ve meta */
+"Patika" = "Patika";
+"Herbaryum" = "Herbaryum";
+"Bahçem" = "Bahçem";
+"Kovan" = "Kovan";
+"Oyna" = "Oyna";
+"Ayarlar" = "Ayarlar";
+"Bahçem'in etkileşimli modu v1.1'de." = "Bahçem'in etkileşimli modu v1.1'de.";
+
+/* Mağaza */
+"Reklamsız" = "Reklamsız";
+"Interstitial ve banner reklamlar kapanır. Ödüllü videoların verdiği her şey tek dokunuşla ücretsiz gelir." = "Interstitial ve banner reklamlar kapanır. Ödüllü videoların verdiği her şey tek dokunuşla ücretsiz gelir.";
+"Satın alındı" = "Satın alındı";
+"Satın almaları geri yükle" = "Satın almaları geri yükle";
+"Satın almaların geri yüklendi." = "Satın almaların geri yüklendi.";
+"Satın alma onay bekliyor." = "Satın alma onay bekliyor.";
+"Satın alma tamamlanmadı. Ücret alınmadı." = "Satın alma tamamlanmadı. Ücret alınmadı.";
+"Bu Apple Kimliği'nde geri yüklenecek satın alma yok." = "Bu Apple Kimliği'nde geri yüklenecek satın alma yok.";
+
+/* Ayarlar */
+"Oyun" = "Oyun";
+"Ses" = "Ses";
+"Müzik" = "Müzik";
+"Haptik" = "Haptik";
+"Azaltılmış hareket" = "Azaltılmış hareket";
+"Renk körlüğü modu" = "Renk körlüğü modu";
+"Renk körlüğü" = "Renk körlüğü";
+"Hesap" = "Hesap";
+"İlerlemeyi sıfırla" = "İlerlemeyi sıfırla";
+"Bütün seviyeler, levhalar ve tohumlar silinir. Geri alınamaz." = "Bütün seviyeler, levhalar ve tohumlar silinir. Geri alınamaz.";
+"Gizlilik" = "Gizlilik";
+"Reklam tercihlerini yönet" = "Reklam tercihlerini yönet";
+"Gizlilik politikası" = "Gizlilik politikası";
+"Kullanım koşulları" = "Kullanım koşulları";
+"Hakkında" = "Hakkında";
+"Sürüm" = "Sürüm";
+"İletişim" = "İletişim";
+"Kapat" = "Kapat";
+"Vazgeç" = "Vazgeç";
+
+/* Boş durumlar (§6) */
+"Henüz levha yok. İlk seviyeyi bitir, ilki preslensin." = "Henüz levha yok. İlk seviyeyi bitir, ilki preslensin.";
+"Patika'ya git" = "Patika'ya git";
+"Bir albüm tamamla, bahçene ilk bitkin dikilsin." = "Bir albüm tamamla, bahçene ilk bitkin dikilsin.";
+"Herbaryum'a git" = "Herbaryum'a git";
+"Çevrimdışısın. Oynamaya devam edebilirsin; ilerlemen cihazında saklanıyor." = "Çevrimdışısın. Oynamaya devam edebilirsin; ilerlemen cihazında saklanıyor.";
+"Şu an gösterilecek reklam yok. Ödülü yine de aldın." = "Şu an gösterilecek reklam yok. Ödülü yine de aldın.";
+"Şu an gösterilecek reklam yok. Birazdan tekrar dene." = "Şu an gösterilecek reklam yok. Birazdan tekrar dene.";

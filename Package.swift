@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "BloomsortDomain", targets: ["BloomsortDomain"]),
         .library(name: "BloomsortDesign", targets: ["BloomsortDesign"]),
         .library(name: "BloomsortGame", targets: ["BloomsortGame"]),
+        .library(name: "BloomsortApp", targets: ["BloomsortApp"]),
         .library(name: "BloomsortServices", targets: ["BloomsortServices"]),
         .executable(name: "levelgen", targets: ["levelgen"]),
     ],
@@ -32,6 +33,11 @@ let package = Package(
             name: "BloomsortServices",
             dependencies: ["BloomsortDomain"],
             path: "Sources/BloomsortServices"
+        ),
+        .target(
+            name: "BloomsortApp",
+            dependencies: ["BloomsortDomain", "BloomsortDesign", "BloomsortGame", "BloomsortServices"],
+            path: "Sources/BloomsortApp"
         ),
         .executableTarget(
             name: "levelgen",
