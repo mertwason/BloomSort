@@ -254,12 +254,16 @@ for id in firstMissing..<(firstLevel + count) {
     let levelStart = Date()
     let deadline = levelBudget.map { levelStart.addingTimeInterval($0) }
     var found: Level?
-    var attempts = 0
-    while attempts < 400, found == nil {
-        attempts += 1
-        if let deadline, Date() >= deadline { break }
-        found = LevelGenerator.attempt(level: id, seed: nextSeed)
-        nextSeed &+= 1
+    // Nefes seviyelerinde önce indirilmiş bant, tutmazsa bandın tamamı
+    // (bkz. Difficulty.candidateRanges).
+    for band in Difficulty.candidateRanges(for: id) where found == nil {
+        var attempts = 0
+        while attempts < 400, found == nil {
+            attempts += 1
+            if let deadline, Date() >= deadline { break }
+            found = LevelGenerator.attempt(level: id, seed: nextSeed, band: band)
+            nextSeed &+= 1
+        }
     }
     guard let level = found else {
         failedLevel = id

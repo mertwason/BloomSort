@@ -21,6 +21,7 @@ derlenip test edilebiliyor, Xcode gerektirmiyor.
 | `BloomsortDomain` — IDA* çözücü (`Solver`) | ✅ *sınırlarıyla, aşağıya bak* |
 | `BloomsortDomain` — ters hamle seviye üreticisi + kabul filtreleri | ✅ |
 | `Tools/levelgen` — üretim, doğrulama ve ölçüm CLI'ı | ✅ |
+| `Resources/levels.json` — 200 seviye, hepsi kesin optimal `M*` ile doğrulanmış | ✅ |
 | `BloomsortServices` — interstitial 8 kuralı, banner yerleşimi, ödül telafisi, App Open kuralları | ✅ |
 | `BloomsortGame` — SpriteKit `BoardScene` | ⬜ Xcode gerektiriyor |
 | `BloomsortApp` — SwiftUI kabuk, SwiftData, Herbaryum | ⬜ Xcode gerektiriyor |
@@ -36,8 +37,11 @@ konuldu ki gerçek SDK'lar gelmeden önce test edilebilsinler.
 swift build -c release
 swift test
 
-# 200 seviye üret
-swift run -c release levelgen --count 200 --out Resources/levels.json
+# 200 seviye üret (depodaki paketi birebir yeniden üretir)
+swift run -c release levelgen --count 200 --level-budget 3600 --out Resources/levels.json
+
+# Yarıda kesilen bir üretimi kaldığı yerden sürdür
+swift run -c release levelgen --count 200 --resume --out Resources/levels.json
 
 # Var olan paketi baştan sona doğrula (CI bunu koşuyor)
 swift run -c release levelgen --verify Resources/levels.json
@@ -89,6 +93,20 @@ koda girmedi:
 - *Heuristiğe "dağılmış renk sayısı" terimi eklemek.* Kabul edilebilir değil:
   aynı renk iki ayrı kabı tam doldurarak da bitebiliyor, yani hedefte bu terim
   sıfır olmak zorunda değil. IDA*'ı optimalden uzun çözümlere itiyordu.
+
+## Seviye paketi
+
+`Resources/levels.json` — 200 seviye, 31 KB (~155 bayt/seviye). Tahta diskte
+durmuyor; her seviye `seed` + ters hamle sayısından birebir yeniden kuruluyor,
+yani aynı seed her cihazda aynı tahtayı veriyor.
+
+Paketin tamamı `levelgen --verify` ile doğrulandı: her seviye seed'den yeniden
+kuruldu, kesin optimal çözücüyle çözüldü, kayıtlı `M*` ile karşılaştırıldı ve
+çözüm yolu baştan sona oynanarak tahtanın bittiği görüldü. Ortalama çözüm
+619 ms, en yavaş 4,4 sn. CI bu doğrulamayı her push'ta koşuyor.
+
+Üretim tek çekirdekte ~1,8 saat sürüyor; `--resume` yarıda kesilen bir koşuyu
+kesintisiz koşunun birebir aynısı olacak şekilde sürdürür.
 
 ## Verilmiş kararlar
 
