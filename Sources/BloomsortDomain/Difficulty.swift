@@ -79,4 +79,17 @@ public enum Difficulty {
         let upper = max(lower, Int((Double(band.upperBound) * 0.6).rounded()))
         return lower...upper
     }
+
+    /// Üreticinin sırayla deneyeceği bantlar.
+    ///
+    /// Nefes seviyesi kuralı (§4.2, "M* hedef bandın %60'ı") geç bantlarda
+    /// bandın kendisiyle çelişiyor: 10 renkli bir tahta 11 hamlede ancak
+    /// baştan yarı çözülmüş olursa biter, o da §4.1'in bayat tahta filtresine
+    /// takılır. Bu yüzden indirilmiş bant **önce denenir**, tutmazsa bandın
+    /// tamamına düşülür — sabit bir kaçış değeri uydurmak yerine.
+    public static func candidateRanges(for level: Int) -> [ClosedRange<Int>] {
+        let full = band(for: level).optimalMoves
+        let preferred = optimalMoveRange(for: level)
+        return preferred == full ? [full] : [preferred, full]
+    }
 }

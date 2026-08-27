@@ -99,6 +99,19 @@ final class LevelGeneratorTests: XCTestCase {
         }
     }
 
+    func testNefesSeviyesiGecBantlardaBandinTamaminaDuser() {
+        // Seviye 135 nefes seviyesi: indirilmiş bant 11...13, ama 9-11 renkli
+        // bir tahta o kadar az hamlede ancak baştan yarı çözülmüş olursa biter
+        // ve bayat tahta filtresine takılır. Üretici bandın tamamına düşmeli.
+        XCTAssertEqual(Difficulty.candidateRanges(for: 135).count, 2)
+        XCTAssertEqual(Difficulty.candidateRanges(for: 136).count, 1)
+        XCTAssertEqual(Difficulty.candidateRanges(for: 135).last,
+                       Difficulty.band(for: 135).optimalMoves,
+                       "son çare bandın tamamı olmalı")
+        // Uçtan uca kanıt Resources/levels.json'da: 135 orada ve CI onu
+        // çözerek doğruluyor. Burada üretmek dakikalar sürüyor.
+    }
+
     func testUretilenSeviyeTahtasiCozulur() throws {
         for level in [3, 9, 18, 24] {
             let created = try XCTUnwrap(LevelGenerator.generate(level: level, startingSeed: 5)?.level)

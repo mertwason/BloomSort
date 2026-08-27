@@ -41,27 +41,35 @@ public enum LevelGenerator {
     public static func generate(level: Int, startingSeed: UInt64,
                                 attempts: Int = 400) -> (level: Level, seed: UInt64)? {
         var seed = startingSeed
-        for _ in 0..<attempts {
-            if let candidate = attempt(level: level, seed: seed) {
-                return (candidate, seed &+ 1)
+        // Nefes seviyelerinde önce indirilmiş bant denenir; tutmazsa bandın
+        // tamamına düşülür. Bkz. `Difficulty.optimalMoveRange(for:)`.
+        for band in Difficulty.candidateRanges(for: level) {
+            for _ in 0..<attempts {
+                if let candidate = attempt(level: level, seed: seed, band: band) {
+                    return (candidate, seed &+ 1)
+                }
+                seed &+= 1
             }
-            seed &+= 1
         }
         return nil
     }
 
     /// Tek bir seed denemesi. Reddedilirse `nil`.
-    public static func attempt(level: Int, seed: UInt64) -> Level? {
-        try? make(level: level, seed: seed).get()
+    public static func attempt(level: Int, seed: UInt64,
+                               band: ClosedRange<Int>? = nil) -> Level? {
+        try? make(level: level, seed: seed, band: band).get()
     }
 
     /// Tek bir seed denemesi, ret nedeniyle birlikte (teşhis ve testler için).
-    public static func make(level: Int, seed: UInt64) -> Result<Level, Rejection> {
+    public static func make(level: Int, seed: UInt64,
+                            band requestedBand: ClosedRange<Int>? = nil) -> Result<Level, Rejection> {
         let parameters = Parameters(level: level, seed: seed)
-        let band = Difficulty.optimalMoveRange(for: level)
+        let band = requestedBand ?? Difficulty.optimalMoveRange(for: level)
         var rng = SplitMix64(seed: seed)
         _ = parameters.consume(&rng)   // parametre çekilişini birebir tekrarla
-        let target = rng.int(in: band)
+        // Hedef çekilişi banttan **bağımsız** tüketiliyor: tahtayı seed'den
+        // yeniden kurarken hangi bandın kullanıldığını bilmek gerekmesin.
+        let target = band.lowerBound + Int(rng.next() % UInt64(band.count))
 
         // 2. adım: ters hamlelerle karıştır.
         let path = reverseWalk(parameters: parameters,
@@ -107,7 +115,7 @@ public enum LevelGenerator {
         let parameters = Parameters(level: level.id, seed: level.seed)
         var rng = SplitMix64(seed: level.seed)
         _ = parameters.consume(&rng)
-        _ = rng.int(in: Difficulty.optimalMoveRange(for: level.id))   // hedef çekilişi
+        _ = rng.next()   // hedef çekilişi (bant seçiminden bağımsız)
         let path = reverseWalk(parameters: parameters, depth: level.reverseMoves, rng: &rng)
         precondition(path.count == level.reverseMoves + 1,
                      "Kaydedilmiş seviye yeniden kurulamadı: \(level.id)")
