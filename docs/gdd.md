@@ -189,24 +189,27 @@ girdi: K (renk), E (boş kap), Cmix (kapasite dağılımı), R (karıştırma de
 | 4-10 | 3-4 | 2 | 4 | — | 8-14 | 35 sn |
 | 11-25 | 5-7 | 2 | 4 | 8. seviyede 2. boş kap açıklanır | 14-18 | 50 sn |
 | 26-40 | 6-8 | 2 | **3/4/5/6 karışık** | **Kapasite çeşitliliği** | 17-21 | 65 sn |
-| 41-60 | 7-9 | 2 | karışık | **Kapalı tomurcuk** — kap kilitli, X polen başka yere yerleşince açılır | 19-23 | 75 sn |
-| 61-85 | 8-10 | 2-3 | karışık | **Çiy damlası** — bir polen donmuş; üstüne 2 hamle yapılınca çözülür | 21-24 | 85 sn |
-| 86-115 | 8-10 | 2-3 | karışık | **Rüzgâr** — 5 hamlede bir iki kabın üstü yer değiştirir; **3 hamle önceden gösterilir** | 22-25 | 95 sn |
-| 116-150 | 9-11 | 3 | karışık | **Arı bütçesi** — yumuşak hamle limiti; aşmak seviyeyi kaybettirmez, sadece yıldızı düşürür | 23-26 | 100 sn |
-| 151-500+ | 9-12 | 2-4 | karışık | Her 15 seviyede engel kombinasyonu rotasyonu | 24-26 | 90-120 sn |
+| 41-60 | 7-9 | 2 | karışık | **Kapalı tomurcuk** — kap kilitli, X polen başka yere yerleşince açılır | 19-22 | 75 sn |
+| 61-85 | 8-10 | 2-3 | karışık | **Çiy damlası** — bir polen donmuş; üstüne 2 hamle yapılınca çözülür | 19-22 | 85 sn |
+| 86-115 | 8-10 | 2-3 | karışık | **Rüzgâr** — 5 hamlede bir iki kabın üstü yer değiştirir; **3 hamle önceden gösterilir** | 19-22 | 95 sn |
+| 116-150 | 9-11 | 3 | karışık | **Arı bütçesi** — yumuşak hamle limiti; aşmak seviyeyi kaybettirmez, sadece yıldızı düşürür | 19-22 | 100 sn |
+| 151-500+ | 9-12 | 2-4 | karışık | Her 15 seviyede engel kombinasyonu rotasyonu | 19-22 | 90-120 sn |
 
 > **`M*` bandı revizyonu (27 Ağustos 2026).** Tablonun `M*` bantları 11.
-> seviyeden itibaren yeniden ölçeklendi; özgün değerler 16-26 / 22-34 / 26-40 /
-> 30-46 / 34-52 / 38-58 / 40-70 idi, tavan artık 26. Sebep ölçüm: seviye
-> üreticisi her tahtayı **kesin optimal** bir IDA* çözücüyle doğruluyor ve bu
-> arama `M*` büyüdükçe üstel patlıyor — 12 renkli bir tahtada `M* = 26` için
-> ~60 sn, `M* = 29` için ~180 sn, `M* ≥ 35` için bütçe içinde hiç. Yani 40-70
-> bandındaki bir seviyenin `M*`'ı üretim sırasında kanıtlanamıyor; `M*` hem
-> yıldız eşiğini hem kabul filtresini beslediği için tahmin edilemez.
+> seviyeden itibaren düşürüldü; özgün değerler 16-26 / 22-34 / 26-40 / 30-46 /
+> 34-52 / 38-58 / 40-70 idi. 41. seviyeden sonrası artık **düz**: 19-22.
 >
-> Ölçekleme eğrinin **şeklini** koruyor: bantlar örtüşerek yükseliyor, tavanda
-> duruyor. Zorluk buradan sonra renk sayısı, boş kap sayısı ve kapasite
-> çeşitliliğiyle artmaya devam ediyor. Ölçüm tablosu `README.md`'de.
+> Sebep ölçüm. Seviye üreticisi her tahtayı **kesin optimal** bir IDA*
+> çözücüyle doğruluyor ve bu aramanın maliyeti hem `M*` hem **renk sayısı** ile
+> üstel büyüyor. Sonuç ters yönlü: renk sayısı arttıkça *doğrulanabilir* `M*`
+> düşüyor. 7 renkli bir tahtada `M* = 26` saniyeler sürerken, 11 renkli bir
+> tahtada `M* = 23` düğüm bütçesini aşıyor. Yani tablonun "renk de artsın,
+> hamle sayısı da artsın" kurgusu kesin optimal doğrulamayla bir arada
+> mümkün değil.
+>
+> Karar: `M*` 41. seviyeden sonra sabit tutuluyor, **zorluk renk sayısı, boş
+> kap sayısı ve kapasite çeşitliliğiyle artmaya devam ediyor**. Ölçüm tablosu
+> `README.md`'de.
 
 **Kritik tasarım kuralı:** Rüzgâr rastgele **değildir**. Hangi iki kabın, kaçıncı hamlede yer değiştireceği üst barda bir rüzgâr göstergesiyle 3 hamle önceden bildirilir. Sürpriz ceza, "kontrol hissi" sözleşmesini bozar — ve bu sözleşme bozulduğunda ARPDAU düşer (Magic Sort vakası).
 

@@ -51,15 +51,15 @@ public enum Difficulty {
         DifficultyBand(levels: 26...40,    colors: 6...8,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
                        optimalMoves: 17...21, newMechanic: "Kapasite çeşitliliği"),
         DifficultyBand(levels: 41...60,    colors: 7...9,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 19...23, newMechanic: "Kapalı tomurcuk"),
+                       optimalMoves: 19...22, newMechanic: "Kapalı tomurcuk"),
         DifficultyBand(levels: 61...85,    colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 21...24, newMechanic: "Çiy damlası"),
+                       optimalMoves: 19...22, newMechanic: "Çiy damlası"),
         DifficultyBand(levels: 86...115,   colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 22...25, newMechanic: "Rüzgâr"),
+                       optimalMoves: 19...22, newMechanic: "Rüzgâr"),
         DifficultyBand(levels: 116...150,  colors: 9...11, emptyVessels: 3...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 23...26, newMechanic: "Arı bütçesi"),
+                       optimalMoves: 19...22, newMechanic: "Arı bütçesi"),
         DifficultyBand(levels: 151...9999, colors: 9...12, emptyVessels: 2...4, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 24...26),
+                       optimalMoves: 19...22),
     ]
 
     public static func band(for level: Int) -> DifficultyBand {

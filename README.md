@@ -58,18 +58,25 @@ doğrulamıyor ve bu, zorluk eğrisini doğrudan değiştirdiği için burada du
 transposition table, düğüm bütçesi). Kesin optimal arama tahta zorlaştıkça
 üstel büyüyor:
 
+Maliyet hem `M*` hem **renk sayısı** ile üstel büyüyor — ve ikincisi baskın:
+
 | Tahta | `M*` | Tipik süre |
 |---|---|---|
 | 4 renk / 6 kap | ~10 | < 1 ms |
-| 8 renk / 10 kap | ~20 | 10–100 ms |
-| 12 renk / 15 kap | 26 | ~60 sn |
-| 12 renk / 15 kap | 29 | ~180 sn |
-| 12 renk / 15 kap | 35+ | düğüm bütçesi içinde çözülemiyor |
+| 7 renk / 9 kap | ~22 | 0,1–3 sn |
+| 9 renk / 12 kap | ~22 | 5–30 sn |
+| 11 renk / 14 kap | ~22 | 20–60 sn |
+| 11 renk / 14 kap | ~25 | çoğu tahtada düğüm bütçesi aşılıyor |
+| 12 renk / 15 kap | ~29 | ~180 sn |
+| 12 renk / 15 kap | 35+ | çözülemiyor |
 
-**Karar:** `docs/gdd.md` §4.2'nin `M*` bantları 11. seviyeden itibaren yeniden
-ölçeklendi, tavan 26. Eğrinin şekli korundu; zorluk renk sayısı, boş kap sayısı
-ve kapasite çeşitliliğiyle artmaya devam ediyor. Gerekçe GDD §4.2'deki nota
-işlendi.
+Sonuç ters yönlü: **renk sayısı arttıkça doğrulanabilir `M*` düşüyor.**
+§4.2'nin "renk de artsın, hamle sayısı da artsın" kurgusu kesin optimal
+doğrulamayla bir arada mümkün değil.
+
+**Karar:** `M*` bantları düşürüldü ve 41. seviyeden sonrası düz (19-22).
+Zorluk renk sayısı, boş kap sayısı ve kapasite çeşitliliğiyle artmaya devam
+ediyor. Gerekçe GDD §4.2'deki nota işlendi.
 
 Denenip **elenen** üç kısayol, üçü de `SolverTests` tarafından yakalandı ve
 koda girmedi:
@@ -90,8 +97,8 @@ koda girmedi:
   kapasitede seviye kazanılamaz hâle gelebiliyordu; bu da "kaybetme durumu
   yoktur" ile çelişiyordu. Kazanma koşulu: her kap ya boş ya tek renkle
   **dolu**. (Bkz. GDD §2.5 karar notu.)
-- **`M*` tavanı 26.** Yukarıdaki ölçüm gereği; eğrinin şekli korunarak bütün
-  bantlar yeniden ölçeklendi.
+- **`M*` bantları düşürüldü, 41. seviyeden sonrası düz (19-22).** Yukarıdaki
+  ölçüm gereği.
 
 ## Hâlâ açık, uydurulmadı
 

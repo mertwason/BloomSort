@@ -25,6 +25,9 @@ func usage() -> Never {
       --diagnose <n>     n. seviye için ret nedenlerinin dağılımını yaz
       --depth <n>        --benchmark için ters hamle derinliği (varsayılan 280)
       --level-budget <sn> Seviye başına üst süre sınırı (varsayılan yok)
+      --diagnose-count <n> --diagnose için denenecek seed sayısı (varsayılan 20)
+      --resume           Var olan çıktı dosyasının kaldığı yerden devam et
+      --probe <n>        n. seviyenin parametreleriyle ulaşılabilir en yüksek M*'ı ölç
       --quiet            Seviye seviye ilerleme yazma
     """)
     exit(0)
@@ -39,6 +42,9 @@ var benchmark: Int?
 var diagnose: Int?
 var benchmarkDepth = 280
 var levelBudget: TimeInterval?
+var diagnoseCount = 20
+var resume = false
+var probe: Int?
 var quiet = false
 
 var arguments = Array(CommandLine.arguments.dropFirst())
@@ -63,6 +69,9 @@ while let argument = arguments.first {
     case "--diagnose":  diagnose = intValue("--diagnose")
     case "--depth":     benchmarkDepth = intValue("--depth")
     case "--level-budget": levelBudget = TimeInterval(intValue("--level-budget"))
+    case "--diagnose-count": diagnoseCount = intValue("--diagnose-count")
+    case "--resume":    resume = true
+    case "--probe":     probe = intValue("--probe")
     case "--quiet":     quiet = true
     case "-h", "--help": usage()
     default: fail("bilinmeyen argüman: \(argument)")
@@ -110,19 +119,54 @@ if let verifyPath {
 
 // MARK: - Teşhis
 
+// MARK: - Ulaşılabilir zorluk ölçümü
+
+if let probe {
+    // Ters yürüyüşün en derin noktasındaki M*, o bandın parametreleriyle
+    // ulaşılabilecek zorluğun üst sınırı. Bant bunun altında kalmak zorunda.
+    var reached: [Int] = []
+    var currentSeed = seed
+    for _ in 0..<diagnoseCount {
+        let parameters = LevelGenerator.Parameters(level: probe, seed: currentSeed)
+        currentSeed &+= 1
+        var rng = SplitMix64(seed: parameters.seed)
+        guard let deepest = LevelGenerator.scrambledBoard(parameters: parameters,
+                                                          reverseMoves: 140, rng: &rng) else {
+            print("  karıştırma tıkandı")
+            continue
+        }
+        let solved = Solver.solve(deepest, limit: 60, nodeLimit: LevelGenerator.solverNodeLimit)
+        let text = solved.map { "\($0.count)" } ?? "bütçe aşıldı"
+        print("  K=\(parameters.colors) E=\(parameters.emptyVessels) toplam kapasite=\(parameters.capacities.reduce(0,+)) → en derin M* \(text)")
+        if let solved { reached.append(solved.count) }
+    }
+    if !reached.isEmpty {
+        print("seviye \(probe): ulaşılan M* \(reached.min()!)–\(reached.max()!), ortanca \(reached.sorted()[reached.count/2])")
+    }
+    exit(0)
+}
+
 if let diagnose {
     var histogram: [String: Int] = [:]
     var accepted = 0
     var currentSeed = seed
     let started = Date()
-    for _ in 0..<100 {
+    for _ in 0..<diagnoseCount {
+        let seedStart = Date()
         switch LevelGenerator.make(level: diagnose, seed: currentSeed) {
-        case .success: accepted += 1
-        case .failure(let reason): histogram[reason.rawValue, default: 0] += 1
+        case .success(let level):
+            accepted += 1
+            print(String(format: "  seed %d → kabul · K=%d M*=%d · %.1f sn",
+                         currentSeed, level.colors, level.optimalMoves,
+                         Date().timeIntervalSince(seedStart)))
+        case .failure(let reason):
+            histogram[reason.rawValue, default: 0] += 1
+            print(String(format: "  seed %d → %@ · %.1f sn", currentSeed, reason.rawValue,
+                         Date().timeIntervalSince(seedStart)))
         }
         currentSeed &+= 1
     }
-    print("seviye \(diagnose) · M* bandı \(Difficulty.optimalMoveRange(for: diagnose)) · 100 seed · \(String(format: "%.1f", Date().timeIntervalSince(started))) sn")
+    print("seviye \(diagnose) · M* bandı \(Difficulty.optimalMoveRange(for: diagnose)) · \(diagnoseCount) seed · \(String(format: "%.1f", Date().timeIntervalSince(started))) sn")
     print("  kabul: \(accepted)")
     for (reason, count) in histogram.sorted(by: { $0.value > $1.value }) {
         print("  \(reason): \(count)")
@@ -190,9 +234,23 @@ let start = Date()
 var levels: [Level] = []
 var nextSeed = seed
 var failedLevel: Int?
+var firstMissing = firstLevel
+
+// --resume: yarıda kalmış bir koşuyu tam olarak kaldığı yerden sürdürür.
+// Seed zinciri kesintisiz bir koşununkiyle birebir aynı: bir seviye kabul
+// edildiğinde zincir o seviyenin seed'inin bir fazlasından devam eder.
+if resume, let data = FileManager.default.contents(atPath: outputPath),
+   let existing = try? JSONDecoder().decode(LevelPack.self, from: data),
+   let last = existing.levels.last {
+    levels = existing.levels
+    nextSeed = last.seed &+ 1
+    firstMissing = last.id + 1
+    print("kaldığı yerden: \(levels.count) seviye yüklendi, seviye \(firstMissing)'den devam")
+}
+
 var byteCount = try writePack(levels)
 
-for id in firstLevel..<(firstLevel + count) {
+for id in firstMissing..<(firstLevel + count) {
     let levelStart = Date()
     let deadline = levelBudget.map { levelStart.addingTimeInterval($0) }
     var found: Level?

@@ -272,12 +272,23 @@ public enum LevelGenerator {
             if isHardEnough(middle) { high = middle } else { low = middle + 1 }
         }
 
-        let state = Position(vessels: path[low]).gameState
-        guard let solution = Solver.solve(state, limit: band.upperBound,
-                                          nodeLimit: solverNodeLimit),
-              band.contains(solution.count) else { return nil }
-        return (low, solution)
+        // İkili arama tek yönlü artan bir işaret varsayıyor; "çözücü düğüm
+        // bütçesini aştı" durumu bu varsayımı bozuyor (o derinlik zor mu, yoksa
+        // sadece kanıtlanamadı mı bilinmiyor). Bu yüzden bulunan derinlikten
+        // geriye doğru kısa bir tarama yapılıyor: kanıtlanabilir ve banda oturan
+        // ilk derinlik kabul ediliyor.
+        for depth in stride(from: low, through: max(band.lowerBound, low - descentScan), by: -1) {
+            let state = Position(vessels: path[depth]).gameState
+            guard let solution = Solver.solve(state, limit: band.upperBound,
+                                              nodeLimit: solverNodeLimit),
+                  band.contains(solution.count) else { continue }
+            return (depth, solution)
+        }
+        return nil
     }
+
+    /// İkili arama sonrası geriye taranacak derinlik sayısı.
+    static let descentScan = 12
 
     /// Belirli sayıda ters hamleyle karıştırılmış tahta — çözücü ölçümü için.
     /// Kabul filtreleri uygulanmaz.
