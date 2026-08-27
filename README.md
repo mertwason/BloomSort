@@ -10,26 +10,38 @@ Alacakaranlıkta geçen polen sıralama bulmacası. Oyuncu arılara polen taşı
 
 ---
 
-## Bu depoda şu an ne var
+## Katmanlar
 
-Bu paket **platformdan bağımsız** katmanları içeriyor; hepsi Linux ve macOS'ta
-derlenip test edilebiliyor, Xcode gerektirmiyor.
+```
+Sources/
+  BloomsortDomain/    saf Swift · GameState, Move, Solver, LevelGenerator, engeller
+  BloomsortDesign/    saf Swift · palet, tipografi, hareket, tahta yerleşimi, erişilebilirlik metinleri
+  BloomsortGame/      SpriteKit · BoardScene, VesselNode, BeadNode, BeeNode, BloomFX
+  BloomsortApp/       SwiftUI · Patika, oyun ekranı, Herbaryum, Kovan, Ayarlar, SwiftData
+  BloomsortServices/  AdService, IAP, analitik, ses, haptik, rıza, ekonomi, ilerleme
+Tools/levelgen/       CLI · seviye üretimi, doğrulama, ölçüm
+App/                  Xcode uygulama hedefi · Info.plist, privacy manifest, yerelleştirme
+Resources/levels.json 200 doğrulanmış seviye
+```
 
-| Katman | Durum |
-|---|---|
-| `BloomsortDomain` — `GameState`, `Vessel`, `Bead`, `Move`, `applying`, `legalMoves`, `isSolved`, geri al | ✅ |
-| `BloomsortDomain` — IDA* çözücü (`Solver`) | ✅ *sınırlarıyla, aşağıya bak* |
-| `BloomsortDomain` — ters hamle seviye üreticisi + kabul filtreleri | ✅ |
-| `Tools/levelgen` — üretim, doğrulama ve ölçüm CLI'ı | ✅ |
-| `Resources/levels.json` — 200 seviye, hepsi kesin optimal `M*` ile doğrulanmış | ✅ |
-| `BloomsortServices` — interstitial 8 kuralı, banner yerleşimi, ödül telafisi, App Open kuralları | ✅ |
-| `BloomsortGame` — SpriteKit `BoardScene` | ⬜ Xcode gerektiriyor |
-| `BloomsortApp` — SwiftUI kabuk, SwiftData, Herbaryum | ⬜ Xcode gerektiriyor |
-| `AdMobAdService`, StoreKit 2, Firebase | ⬜ SDK + Xcode gerektiriyor |
+Bağımlılık yönü tek yönlü: `App → Game → Domain`, `App → Services`, `Game → Design`.
+Domain hiçbir şeye bağımlı değil.
 
-SpriteKit ve SwiftUI katmanları bu SwiftPM paketinde **yok**: SpriteKit Linux'ta
-derlenmiyor ve bu depoda henüz bir Xcode projesi yok. Kural motorları buraya
-konuldu ki gerçek SDK'lar gelmeden önce test edilebilsinler.
+| Katman | Durum | Nerede derleniyor |
+|---|---|---|
+| `BloomsortDomain` | ✅ testli | Linux + macOS + iOS |
+| `BloomsortDesign` | ✅ testli | Linux + macOS + iOS |
+| `BloomsortServices` (kural motorları) | ✅ testli | Linux + macOS + iOS |
+| `BloomsortServices` (StoreKit / AdMob / UMP köprüleri) | ✅ yazıldı | yalnızca Apple, SDK varsa |
+| `BloomsortGame` (SpriteKit) | ✅ yazıldı, **derlenmedi** | yalnızca Apple |
+| `BloomsortApp` (SwiftUI) | ✅ yazıldı, **derlenmedi** | yalnızca Apple |
+
+**Derlenmedi ne demek:** bu oturum Linux'ta koştu; SpriteKit ve SwiftUI orada
+yok. O katmanlardaki platformdan bağımsız her şey `BloomsortDesign`'a çıkarıldı
+ve test edildi — arı uçuş geometrisi ve süresi, animasyon kuyruğu, tahta
+yerleşimi, VoiceOver metinleri, palet kontrastı. Geriye kalan çatı kodu bir
+Mac'te ilk derlemede düzeltme isteyebilir; CI'daki `ios` işi bunun için var
+(ilk yeşil koşuya kadar `continue-on-error` ile işaretli).
 
 ## Kullanım
 
@@ -38,29 +50,30 @@ swift build -c release
 swift test
 
 # 200 seviye üret (depodaki paketi birebir yeniden üretir)
-swift run -c release levelgen --count 200 --level-budget 3600 --out Resources/levels.json
+swift run -c release levelgen --count 200 --level-budget 1800 --out Resources/levels.json
 
-# Yarıda kesilen bir üretimi kaldığı yerden sürdür
+# Yarıda kesilen üretimi kaldığı yerden sürdür
 swift run -c release levelgen --count 200 --resume --out Resources/levels.json
 
-# Var olan paketi baştan sona doğrula (CI bunu koşuyor)
+# Paketi baştan sona doğrula (CI bunu koşuyor)
 swift run -c release levelgen --verify Resources/levels.json
 
-# Çözücü ölçümü
+# Çözücü ölçümü · bir bandın ulaşılabilir zorluğu · ret nedenleri
 swift run -c release levelgen --benchmark 20 --depth 40
+swift run -c release levelgen --probe 117 --diagnose-count 5
+swift run -c release levelgen --diagnose 47 --diagnose-count 6
+```
 
-# Bir seviyenin ret nedenlerini gör
-swift run -c release levelgen --diagnose 27
+iOS uygulaması (Mac gerekir):
+
+```bash
+cd App && xcodegen generate && open Bloomsort.xcodeproj
 ```
 
 ## Çözücünün sınırı — bilinmesi gereken
 
 GDD §8.3 "12 renk / 15 kap için tipik çözüm < 40 ms" diyor. Ölçüm bunu
 doğrulamıyor ve bu, zorluk eğrisini doğrudan değiştirdiği için burada duruyor.
-
-`Solver` **kesin optimal** `M*` hesaplıyor (IDA*, kabul edilebilir heuristik,
-transposition table, düğüm bütçesi). Kesin optimal arama tahta zorlaştıkça
-üstel büyüyor:
 
 Maliyet hem `M*` hem **renk sayısı** ile üstel büyüyor — ve ikincisi baskın:
 
@@ -96,41 +109,71 @@ koda girmedi:
 
 ## Seviye paketi
 
-`Resources/levels.json` — 200 seviye, 31 KB (~155 bayt/seviye). Tahta diskte
-durmuyor; her seviye `seed` + ters hamle sayısından birebir yeniden kuruluyor,
-yani aynı seed her cihazda aynı tahtayı veriyor.
+`Resources/levels.json` — 200 seviye. Tahta diskte durmuyor; her seviye `seed`
++ ters hamle sayısından birebir yeniden kuruluyor, yani aynı seed her cihazda
+aynı tahtayı veriyor. Engeller kayıtta açıkça duruyor.
 
 Paketin tamamı `levelgen --verify` ile doğrulandı: her seviye seed'den yeniden
 kuruldu, kesin optimal çözücüyle çözüldü, kayıtlı `M*` ile karşılaştırıldı ve
-çözüm yolu baştan sona oynanarak tahtanın bittiği görüldü. Ortalama çözüm
-619 ms, en yavaş 4,4 sn. CI bu doğrulamayı her push'ta koşuyor.
-
-Üretim tek çekirdekte ~1,8 saat sürüyor; `--resume` yarıda kesilen bir koşuyu
-kesintisiz koşunun birebir aynısı olacak şekilde sürdürür.
+çözüm yolu baştan sona oynanarak tahtanın bittiği görüldü. CI bunu her push'ta
+koşuyor.
 
 ## Verilmiş kararlar
 
+Hepsi ilgili dokümana not olarak da işlendi.
+
 - **Çiçek açma bir sunum olayı.** Kap tahtada kalır, gerekirse bozulabilir.
   §2.5'in "kap tahtadan ayrılır" ifadesi geri dönülmez okunursa karışık
-  kapasitede seviye kazanılamaz hâle gelebiliyordu; bu da "kaybetme durumu
-  yoktur" ile çelişiyordu. Kazanma koşulu: her kap ya boş ya tek renkle
-  **dolu**. (Bkz. GDD §2.5 karar notu.)
-- **`M*` bantları düşürüldü, 41. seviyeden sonrası düz (19-22).** Yukarıdaki
-  ölçüm gereği.
+  kapasitede seviye kazanılamaz hâle gelebiliyordu; bu da "kaybetme yok" ile
+  çelişiyordu. Kazanma koşulu: her kap ya boş ya tek renkle **dolu**.
+- **`M*` bantları düşürüldü, 41. seviyeden sonrası düz.** Ölçüm gereği.
+- **Yıldız eşiği:** 3★ yalnızca tam optimal çözümde, 2★ için `M* × 1,25`,
+  üstü 1★.
+- **Arı bütçesi = 2★ eşiği.** Ayrı bir sayı uydurmak yerine; bütçeyi aşmak tam
+  olarak 1★'a düşmek demek.
+- **Palet 12 renge çıktı.** Eksik dört renk ölçümle seçildi: paletin kendi
+  L\*/C\* zarfında, zemine kontrastı ≥ 7,4 ve diğer bütün renklerden CIEDE2000
+  farkı ≥ 16 (paletin mevcut en yakın çifti 15,7).
+- **Engel kuralları** birebir okunarak yazıldı; ayrıntı GDD §4.2 notunda.
+- **Ses:** D majör pentatonik. §7.3'ün "1. tane D, 5. tane A" tarifi beş notada
+  yarım ses gerektiriyor ve o dizi pentatonik olmuyor; A dördüncü tanede
+  geliyor.
 
-## Hâlâ açık, uydurulmadı
+## Yolda çıkan ve düzeltilen spec hataları
 
-1. **Yıldız eşikleri.** GDD §8.3 "`M*` → yıldız eşiği" diyor ama 2★ ve 1★ için
-   hamle çarpanını vermiyor. `Level.stars(forMoves:)` bu yüzden yazılmadı.
-2. **Palette 8 renk var (§7.2 ve UI §1.2), zorluk tablosu 12 renge kadar
-   çıkıyor (§4.2).** Eksik 4 renk ve renk körlüğü sembolleri belirlenmeli.
-3. **Karıştırma derinliği `R`.** §4.1 girdi olarak istiyor ama değer vermiyor.
-   Üretici sabit almak yerine `M*` hedef banda oturana kadar yürüyor.
+- §1.1'deki dört kontrast oranı hex değerlerinden hesaplananla tutmuyordu
+  (13,9 / 6,4 / 11,2 / 9,7 → 14,3 / 7,0 / 10,3 / 10,3). Tasarım değişmedi,
+  dördü de AA'yı geçiyor. Oranlar artık her testte hex'lerden yeniden
+  hesaplanıyor.
+- §3.5'in yerleşimi en yoğun tahtada sığmıyordu: 3 satır × 188 pt = 564 pt,
+  tahta alanı 449 pt. Genişlik ölçekleniyor ama yükseklik ölçeklenmiyordu.
+  `BoardLayout` düzgün bir ölçek katsayısı uyguluyor, taşma ve çakışma testli.
+- §3.7'deki "34/32 hamle → 3★" mock'u yeni yıldız eşiğiyle 2★ olurdu; 32/32
+  yapıldı.
+- §4.1 "çözülebilirlik matematiksel garanti" diyor; bu ancak her ters hamle tam
+  olarak bir ileri hamlenin tersiyse doğru ve o kadar dar bir tanımla yürüyüş
+  birkaç adımda tıkanıyor. Garanti yerine her seviyenin çözücüyle doğrulanması
+  konuldu.
 
-## Henüz yapılmayanlar
+## Hâlâ açık
 
-- Engeller: kapalı tomurcuk (seviye 41+), çiy damlası (61+), rüzgâr (86+),
-  arı bütçesi (116+). Üretici bu bantların renk/kapasite parametrelerini
-  uyguluyor ama engelleri koymuyor.
-- `BoardScene` ve bütün sunum katmanı.
-- Gerçek AdMob/UMP/StoreKit/Firebase entegrasyonları.
+Bunlar dokümanlarda yok, uydurulmadı.
+
+1. **Herbaryum biyom adları.** §5.1 sekiz biyom sayıyor ("Çayır, Orman Altı,
+   Kıyı, Bozkır, Yayla, Bahçe, Sulak, Kayalık…") ama 200 seviye 17 albüm
+   ediyor. Dokuz ad eksik; isimsiz albümler "Bölge 9" gibi görünüyor ve kodda
+   işaretli.
+2. **İpucu bankası boyutu.** §6.1 R3 "bankası boş" diyor ama bankanın kaç
+   hakla başladığını vermiyor. Şimdilik 1.
+3. **Mevsim yolu, Bahçem etkileşimli mod, Günün Çiçeği, seri onarımı.** §5.3
+   ve §5.4'te tarif edilmiş ama §9.2 bunları v1.1'e erteliyor; ekonomi ve
+   analitik tarafı hazır, ekranları yok.
+4. **AdMob App ID, ad unit ID'leri, SKAdNetwork listesi, Firebase yapılandırma
+   dosyası.** Hesap işleri; `App/Info.plist` içindeki yer tutucu kasten
+   geçersiz ve bir test bunu bekliyor.
+
+## Yapılmayanlar (v1.1)
+
+Bahçem tam etkileşimli mod · Mevsim yolu · CloudKit · Native reklam · Mevsim
+geçişi IAP · Temalar · Sonsuz Çayır · iPad özel düzen · Widget · Game Center ·
+sosyal özellikler.
