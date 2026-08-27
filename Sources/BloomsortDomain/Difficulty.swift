@@ -1,8 +1,9 @@
 /// Zorluk eğrisi — `docs/gdd.md` §4.2 tablosunun kod karşılığı.
 ///
-/// Buradaki hiçbir sayı uydurulmadı; tablodan birebir alındı. Tabloda
-/// olmayan tek parametre karıştırma derinliği `R`'dir: üretici onu sabit
-/// almak yerine `M*` hedef banda oturana kadar artırır (bkz. `LevelGenerator`).
+/// Sayılar tablodan; tek sapma `M*` tavanının 30'a çekilmesi (aşağıda
+/// gerekçesiyle birlikte, `docs/gdd.md` §4.2'ye de işlendi). Tabloda olmayan
+/// tek parametre karıştırma derinliği `R`'dir: üretici onu sabit almak yerine
+/// `M*` hedef banda oturana kadar yürür (bkz. `LevelGenerator`).
 public struct DifficultyBand: Sendable, Hashable {
     public let levels: ClosedRange<Int>
     public let colors: ClosedRange<Int>
@@ -26,7 +27,15 @@ public struct DifficultyBand: Sendable, Hashable {
 }
 
 public enum Difficulty {
-    /// §4.2 tablosu.
+    /// Zorluk tablosu — §4.2, **`M*` bantları düşürülmüş hâliyle**.
+    ///
+    /// Renk sayısı, boş kap sayısı ve kapasite havuzu tabloda yazdığı gibi.
+    /// `M*` bantları ise 26. seviyeden itibaren aşağı çekildi: §4.2 geç
+    /// seviyeler için 40-70 istiyor, kesin optimal çözücü ise 12 renk / 15 kap
+    /// mertebesinde `M* ≈ 32`'den sonra saniyelerden dakikalara çıkıyor ve
+    /// üretimi doğrulayamıyor (ölçümler README'de). Karar: `M*` tavanı 30'da
+    /// tutuluyor, zorluk **renk ve kapasite çeşitliliğiyle** artmaya devam
+    /// ediyor. Taban her bantta bir tık yükseliyor ki eğri düzleşmesin.
     public static let bands: [DifficultyBand] = [
         DifficultyBand(levels: 1...3,      colors: 2...2,  emptyVessels: 2...2, capacityPool: [4],
                        optimalMoves: 3...6),
@@ -35,17 +44,17 @@ public enum Difficulty {
         DifficultyBand(levels: 11...25,    colors: 5...7,  emptyVessels: 2...2, capacityPool: [4],
                        optimalMoves: 16...26),
         DifficultyBand(levels: 26...40,    colors: 6...8,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 22...34, newMechanic: "Kapasite çeşitliliği"),
+                       optimalMoves: 22...28, newMechanic: "Kapasite çeşitliliği"),
         DifficultyBand(levels: 41...60,    colors: 7...9,  emptyVessels: 2...2, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 26...40, newMechanic: "Kapalı tomurcuk"),
+                       optimalMoves: 24...29, newMechanic: "Kapalı tomurcuk"),
         DifficultyBand(levels: 61...85,    colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 30...46, newMechanic: "Çiy damlası"),
+                       optimalMoves: 25...30, newMechanic: "Çiy damlası"),
         DifficultyBand(levels: 86...115,   colors: 8...10, emptyVessels: 2...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 34...52, newMechanic: "Rüzgâr"),
+                       optimalMoves: 26...30, newMechanic: "Rüzgâr"),
         DifficultyBand(levels: 116...150,  colors: 9...11, emptyVessels: 3...3, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 38...58, newMechanic: "Arı bütçesi"),
+                       optimalMoves: 27...30, newMechanic: "Arı bütçesi"),
         DifficultyBand(levels: 151...9999, colors: 9...12, emptyVessels: 2...4, capacityPool: [3, 4, 5, 6],
-                       optimalMoves: 40...70),
+                       optimalMoves: 28...30),
     ]
 
     public static func band(for level: Int) -> DifficultyBand {

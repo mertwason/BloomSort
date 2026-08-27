@@ -104,6 +104,15 @@ Bir kap tek renkle dolduğu **an**:
 5. Kap yerini boşaltır → **tahtada alan açılır** (bu, ilerledikçe nefes aldıran dinamik)
 6. Pentatonik notada ses: yığın derinliğine göre yükselen nota (bkz. §7.3)
 
+> **Karar (26 Ağustos 2026):** Çiçek açma bir **sunum** olayıdır; kap tahtada
+> kalır ve gerekirse sonradan bozulabilir. Sebep: 26. seviyeden sonra kapasiteler
+> karışıyor (§4.2) ve bir renk, kendi toplam adedinden küçük bir kabı
+> doldurabiliyor. Kap gerçekten ve geri dönülmez biçimde ayrılsaydı geri kalan
+> taneler tahtada sahipsiz kalır ve seviye kazanılamaz hâle gelirdi — bu da
+> §2.4'teki "kaybetme durumu yoktur" sözleşmesini bozardı. Motor, çözücü ve
+> üretici bu modele göre yazıldı: kazanma koşulu "her kap ya boş ya tek renkle
+> **dolu**".
+
 ### 2.6 Fizik / animasyon notları
 
 - Arı uçuşu: kaynak → hedef arası **kuadratik Bézier**, kontrol noktası orta noktanın 40pt üstünde, süre `0.34s + 0.04s × mesafe/100`, `easeInEaseOut`. Arkasında 5 noktalı sönümlenen iz.
@@ -179,12 +188,22 @@ girdi: K (renk), E (boş kap), Cmix (kapasite dağılımı), R (karıştırma de
 | 1-3 | 2 | 2 | 4 | *Öğretici (rehberli)* | 3-6 | 20 sn |
 | 4-10 | 3-4 | 2 | 4 | — | 8-14 | 35 sn |
 | 11-25 | 5-7 | 2 | 4 | 8. seviyede 2. boş kap açıklanır | 16-26 | 50 sn |
-| 26-40 | 6-8 | 2 | **3/4/5/6 karışık** | **Kapasite çeşitliliği** | 22-34 | 65 sn |
-| 41-60 | 7-9 | 2 | karışık | **Kapalı tomurcuk** — kap kilitli, X polen başka yere yerleşince açılır | 26-40 | 75 sn |
-| 61-85 | 8-10 | 2-3 | karışık | **Çiy damlası** — bir polen donmuş; üstüne 2 hamle yapılınca çözülür | 30-46 | 85 sn |
-| 86-115 | 8-10 | 2-3 | karışık | **Rüzgâr** — 5 hamlede bir iki kabın üstü yer değiştirir; **3 hamle önceden gösterilir** | 34-52 | 95 sn |
-| 116-150 | 9-11 | 3 | karışık | **Arı bütçesi** — yumuşak hamle limiti; aşmak seviyeyi kaybettirmez, sadece yıldızı düşürür | 38-58 | 100 sn |
-| 151-500+ | 9-12 | 2-4 | karışık | Her 15 seviyede engel kombinasyonu rotasyonu | 40-70 | 90-120 sn |
+| 26-40 | 6-8 | 2 | **3/4/5/6 karışık** | **Kapasite çeşitliliği** | 22-28 | 65 sn |
+| 41-60 | 7-9 | 2 | karışık | **Kapalı tomurcuk** — kap kilitli, X polen başka yere yerleşince açılır | 24-29 | 75 sn |
+| 61-85 | 8-10 | 2-3 | karışık | **Çiy damlası** — bir polen donmuş; üstüne 2 hamle yapılınca çözülür | 25-30 | 85 sn |
+| 86-115 | 8-10 | 2-3 | karışık | **Rüzgâr** — 5 hamlede bir iki kabın üstü yer değiştirir; **3 hamle önceden gösterilir** | 26-30 | 95 sn |
+| 116-150 | 9-11 | 3 | karışık | **Arı bütçesi** — yumuşak hamle limiti; aşmak seviyeyi kaybettirmez, sadece yıldızı düşürür | 27-30 | 100 sn |
+| 151-500+ | 9-12 | 2-4 | karışık | Her 15 seviyede engel kombinasyonu rotasyonu | 28-30 | 90-120 sn |
+
+> **`M*` tavanı revizyonu (26 Ağustos 2026).** Tablonun `M*` bantları 26. seviyeden
+> itibaren düşürüldü; özgün değerler sırasıyla 22-34 / 26-40 / 30-46 / 34-52 /
+> 38-58 / 40-70 idi. Sebep ölçüm: seviye üreticisi her tahtayı **kesin optimal**
+> bir IDA* çözücüyle doğruluyor ve bu arama 12 renk / 15 kap mertebesinde
+> `M* ≈ 32`'den sonra dakikalara çıkıyor — yani 40-70 bandındaki bir seviyenin
+> `M*`'ı üretim sırasında kanıtlanamıyor, `M*` de hem yıldız eşiğini hem kabul
+> filtresini beslediği için tahmin edilemez. Tavan 30'da tutuluyor; zorluk
+> renk sayısı, boş kap sayısı ve kapasite çeşitliliğiyle artmaya devam ediyor.
+> Ölçüm tablosu `README.md`'de.
 
 **Kritik tasarım kuralı:** Rüzgâr rastgele **değildir**. Hangi iki kabın, kaçıncı hamlede yer değiştireceği üst barda bir rüzgâr göstergesiyle 3 hamle önceden bildirilir. Sürpriz ceza, "kontrol hissi" sözleşmesini bozar — ve bu sözleşme bozulduğunda ARPDAU düşer (Magic Sort vakası).
 

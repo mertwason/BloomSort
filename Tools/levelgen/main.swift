@@ -24,6 +24,7 @@ func usage() -> Never {
       --benchmark <n>    n rastgele 12 renkli tahtada çözücü süresini ölç
       --diagnose <n>     n. seviye için ret nedenlerinin dağılımını yaz
       --depth <n>        --benchmark için ters hamle derinliği (varsayılan 280)
+      --level-budget <sn> Seviye başına üst süre sınırı (varsayılan yok)
       --quiet            Seviye seviye ilerleme yazma
     """)
     exit(0)
@@ -37,6 +38,7 @@ var verifyPath: String?
 var benchmark: Int?
 var diagnose: Int?
 var benchmarkDepth = 280
+var levelBudget: TimeInterval?
 var quiet = false
 
 var arguments = Array(CommandLine.arguments.dropFirst())
@@ -60,6 +62,7 @@ while let argument = arguments.first {
     case "--benchmark": benchmark = intValue("--benchmark")
     case "--diagnose":  diagnose = intValue("--diagnose")
     case "--depth":     benchmarkDepth = intValue("--depth")
+    case "--level-budget": levelBudget = TimeInterval(intValue("--level-budget"))
     case "--quiet":     quiet = true
     case "-h", "--help": usage()
     default: fail("bilinmeyen argüman: \(argument)")
@@ -166,18 +169,43 @@ if let benchmark {
 
 // MARK: - Üretim
 
+let outputURL = URL(fileURLWithPath: outputPath)
+try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(),
+                                        withIntermediateDirectories: true)
+
+/// Paketi diske yazar. Her seviyeden sonra çağrılıyor: derin bantlarda üretim
+/// uzun sürüyor, yarıda kesilen bir koşudan da geçerli bir paket çıksın.
+func writePack(_ levels: [Level]) throws -> Int {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let data = try encoder.encode(LevelPack(levels: levels))
+    try data.write(to: outputURL)
+    return data.count
+}
+
 let start = Date()
 var levels: [Level] = []
 var nextSeed = seed
 var failedLevel: Int?
+var byteCount = try writePack(levels)
+
 for id in firstLevel..<(firstLevel + count) {
     let levelStart = Date()
-    guard let (level, followingSeed) = LevelGenerator.generate(level: id, startingSeed: nextSeed) else {
+    let deadline = levelBudget.map { levelStart.addingTimeInterval($0) }
+    var found: Level?
+    var attempts = 0
+    while attempts < 400, found == nil {
+        attempts += 1
+        if let deadline, Date() >= deadline { break }
+        found = LevelGenerator.attempt(level: id, seed: nextSeed)
+        nextSeed &+= 1
+    }
+    guard let level = found else {
         failedLevel = id
         break
     }
     levels.append(level)
-    nextSeed = followingSeed
+    byteCount = try writePack(levels)
     if !quiet {
         print(String(format: "seviye %3d · K=%2d E=%d M*=%2d R=%4d dallanma=%.2f seed=%d · %.1f sn",
                      level.id, level.colors, level.emptyVessels, level.optimalMoves,
@@ -186,21 +214,11 @@ for id in firstLevel..<(firstLevel + count) {
     }
 }
 
-let pack = LevelPack(levels: levels)
-let encoder = JSONEncoder()
-encoder.outputFormatting = [.sortedKeys]
-let data = try encoder.encode(pack)
-
-let outputURL = URL(fileURLWithPath: outputPath)
-try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(),
-                                        withIntermediateDirectories: true)
-try data.write(to: outputURL)
-
 let elapsed = Date().timeIntervalSince(start)
-let bytesPerLevel = levels.isEmpty ? 0 : data.count / levels.count
+let bytesPerLevel = levels.isEmpty ? 0 : byteCount / max(levels.count, 1)
 print("""
 \(levels.count) seviye üretildi · \(String(format: "%.1f", elapsed)) sn
-\(outputPath) · \(data.count) bayt (\(bytesPerLevel) bayt/seviye)
+\(outputPath) · \(byteCount) bayt (\(bytesPerLevel) bayt/seviye)
 """)
 if let failedLevel {
     fail("seviye \(failedLevel) için kabul filtrelerinden geçen tahta bulunamadı; "

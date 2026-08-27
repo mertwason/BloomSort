@@ -52,22 +52,25 @@ swift run -c release levelgen --diagnose 27
 ## Çözücünün sınırı — bilinmesi gereken
 
 GDD §8.3 "12 renk / 15 kap için tipik çözüm < 40 ms" diyor. Ölçüm bunu
-doğrulamıyor ve bu, seviye üretimini doğrudan etkilediği için burada duruyor.
+doğrulamıyor ve bu, zorluk eğrisini doğrudan değiştirdiği için burada duruyor.
 
 `Solver` **kesin optimal** `M*` hesaplıyor (IDA*, kabul edilebilir heuristik,
-transposition table). Kesin optimal arama, tahta zorlaştıkça üstel büyüyor:
+transposition table, düğüm bütçesi). Kesin optimal arama tahta zorlaştıkça
+üstel büyüyor:
 
 | Tahta | `M*` | Tipik süre |
 |---|---|---|
 | 4 renk / 6 kap | ~10 | < 1 ms |
 | 8 renk / 10 kap | ~25 | 10–100 ms |
-| 12 renk / 15 kap | ~36 | ~1 sn, sık sık düğüm bütçesini aşıyor |
+| 12 renk / 15 kap | ~30 | 0,5–2 sn |
+| 12 renk / 15 kap | ~36 | ~1 sn – dakikalar, sık sık düğüm bütçesini aşıyor |
 | 12 renk / 15 kap, tam karışık | 45+ | bütçe içinde çözülemiyor |
 
-Bunun seviye üretimine yansıması: `docs/gdd.md` §4.2'nin `M*` bantları
-(seviye 151+ için 40–70) kesin optimal bir çözücüyle **doğrulanamıyor**.
-Üretilen seviyelerin nereye kadar geldiği `Resources/levels.json` içinde
-görünür.
+**Karar:** `docs/gdd.md` §4.2'nin `M*` bantları 26. seviyeden itibaren
+düşürüldü, tavan 30. Zorluk renk sayısı, boş kap sayısı ve kapasite
+çeşitliliğiyle artmaya devam ediyor. Gerekçe GDD §4.2'deki nota işlendi.
+Bu tavanla 200 seviyenin tamamı üretilebiliyor ve her biri kesin optimal
+`M*` ile doğrulanıyor.
 
 Denenip **elenen** iki hızlandırma, ikisi de `SolverTests` tarafından
 yakalandı ve koda girmedi:
@@ -78,22 +81,22 @@ yakalandı ve koda girmedi:
   adedinden küçük bir kabı doldurabiliyor; o kabın sonradan bozulması
   gerekebiliyor.
 
-## Açık tasarım soruları
+## Verilmiş kararlar
 
-Bunlar dokümanlarda yok ve uydurulmadı; karar verilmeden kodlanmayacak.
+- **Çiçek açma bir sunum olayı.** Kap tahtada kalır, gerekirse bozulabilir.
+  §2.5'in "kap tahtadan ayrılır" ifadesi geri dönülmez okunursa karışık
+  kapasitede seviye kazanılamaz hâle gelebiliyordu; bu da "kaybetme durumu
+  yoktur" ile çelişiyordu. Kazanma koşulu: her kap ya boş ya tek renkle
+  **dolu**. (Bkz. GDD §2.5 karar notu.)
+- **`M*` tavanı 30.** Yukarıdaki ölçüm gereği.
+
+## Hâlâ açık, uydurulmadı
 
 1. **Yıldız eşikleri.** GDD §8.3 "`M*` → yıldız eşiği" diyor ama 2★ ve 1★ için
    hamle çarpanını vermiyor. `Level.stars(forMoves:)` bu yüzden yazılmadı.
-2. **Çiçek açan kap gerçekten tahtadan ayrılıyor mu, geri alınabilir mi?**
-   §2.5 kap dolduğu an çiçek açıp ayrıldığını söylüyor. Karışık kapasitede
-   (§4.2, seviye 26+) bir renk kendi adedinden küçük bir kabı doldurabilir;
-   ayrılma geri alınamazsa geri kalan taneler tahtada kalır ve seviye
-   kazanılamaz hâle gelir — bu da "kaybetme durumu yoktur" (§2.4) ile çelişir.
-   Şu anki model: çiçek açma bir **sunum** olayı, kap tahtada kalıyor ve
-   gerekirse bozulabiliyor.
-3. **Palette 8 renk var (§7.2 ve UI §1.2), zorluk tablosu 12 renge kadar
+2. **Palette 8 renk var (§7.2 ve UI §1.2), zorluk tablosu 12 renge kadar
    çıkıyor (§4.2).** Eksik 4 renk ve renk körlüğü sembolleri belirlenmeli.
-4. **Karıştırma derinliği `R`.** §4.1 girdi olarak istiyor ama değer vermiyor.
+3. **Karıştırma derinliği `R`.** §4.1 girdi olarak istiyor ama değer vermiyor.
    Üretici sabit almak yerine `M*` hedef banda oturana kadar yürüyor.
 
 ## Henüz yapılmayanlar
