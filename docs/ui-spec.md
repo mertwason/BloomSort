@@ -26,7 +26,13 @@
 | `--ember` | `#E86A5C` | 232,106,92 | Uyarı, yıkıcı eylem, hata |
 
 **Kontrast doğrulaması (WCAG AA):**
-`--mist` / `--dusk` = 13,9:1 ✓ · `--mist-dim` / `--dusk` = 6,4:1 ✓ · `--dusk` / `--pollen` = 11,2:1 ✓ · `--mist` / `--moss` = 9,7:1 ✓
+`--mist` / `--dusk` = 14,3:1 ✓ · `--mist-dim` / `--dusk` = 7,0:1 ✓ · `--dusk` / `--pollen` = 10,3:1 ✓ · `--mist` / `--moss` = 10,3:1 ✓
+
+> **Düzeltme (27 Ağustos 2026).** Bu satırdaki dört oran taslakta 13,9 / 6,4 /
+> 11,2 / 9,7 yazıyordu; hex değerlerinden hesaplanınca tutmuyorlar. Dördü de
+> AA'yı rahatça geçtiği için tasarım değişmedi, yalnızca sayılar düzeltildi.
+> Oranlar artık `DesignTests` tarafından her koşuda hex'lerden yeniden
+> hesaplanıp doğrulanıyor, yani bir daha kayamazlar.
 
 ### 1.2 Renk — polen (oynanış)
 
@@ -40,6 +46,20 @@
 | 6 | Pembe | `#F2A0C8` | ✚ |
 | 7 | Filiz | `#9BD466` | ⬟ |
 | 8 | Kayısı | `#E8925C` | ▼ |
+| 9 | Lavanta | `#CDC3FF` | ○ |
+| 10 | Buz | `#55E1FF` | ✖ |
+| 11 | Zeytin | `#AAA569` | ◗ |
+| 12 | Şeftali | `#FFB4AA` | ✱ |
+
+> **Ek dört renk (27 Ağustos 2026).** Palet 8 renk tanımlıyordu ama §4.2'nin
+> zorluk tablosu 12 renge çıkıyor. Eksik dördü ölçümle seçildi: hepsi paletin
+> kendi L\*/C\* zarfında, `--dusk-deep` zeminine kontrastı ≥ 7,4 ve **diğer
+> bütün renklerden CIEDE2000 farkı ≥ 16** — paletin mevcut en yakın çifti
+> (Mercan ↔ Kayısı) 15,7 olduğu için bu, ayırt edilebilirlik tabanını
+> düşürmüyor, yükseltiyor. `DesignTests` her koşuda doğruluyor.
+>
+> Semboller renk körlüğü modunda çizilir; ⬟ (beşgen) ile yeni ◗ (yarım daire)
+> ve ✱ (yıldızcık) 10 pt'de en yakın çift, oyunlanabilirlik testinde bakılmalı.
 
 Sembol, tane merkezine `--dusk-deep` renkte, 10 pt, %70 opaklıkta çizilir. **Yalnızca renk körlüğü modu açıkken.**
 
@@ -396,6 +416,14 @@ tahta dikeyde ortalanır
 ```
 Kaplar farklı yükseklikte olduğunda **satır içinde tabanları hizalanır** (üstleri değil) — vazolar bir rafta durur gibi görünür.
 
+> **Düzeltme (27 Ağustos 2026).** Yukarıdaki algoritma genişliği ölçekliyor ama
+> yüksekliği ölçeklemiyor ve en yoğun tahtada sığmıyor: 3 satır × 188 pt
+> (6 kapasiteli kap) = 564 pt, tahta alanı ise 449 pt — "dikey boşluk" formülü
+> negatif çıkıyor. Uygulama tek bir **düzgün ölçek katsayısı** hesaplıyor ve
+> hem yüksekliği hem genişliği ona bağlıyor; katsayı 1'i aşmadığı için sığan
+> tahtalar spec ölçüleriyle çiziliyor. Yerleşim `BloomsortDesign.BoardLayout`
+> içinde, taşma ve çakışma testleri `BoardLayoutTests`'te.
+
 **Zemin:** `--dusk-deep`'ten `--dusk`'a dikey gradyan + `SKShader` ile çok hafif film grain (opaklık %3). Tahta alanının arkasında %6 opaklıkta dev bir yaprak damarı deseni.
 
 **Arı uçuşu (§2.3):** tahtanın z-katmanında en üstte. Aynı anda maks 3, fazlası kuyrukta.
@@ -438,7 +466,7 @@ Sheet açıkken oyun tahtası 8 pt blur + %40 karartma. Ortam sesi %30'a düşer
 │        Papaver noctis               │  display-m Fraunces
 │         ★  ★  ★                     │  32 pt --pollen
 │                                     │
-│      🌾 +15    34/32 hamle          │  numeric-l
+│      🌾 +15    32/32 hamle          │  numeric-l
 │                                     │
 │      ÇAYIR ▓▓▓▓▓▓▓▓▓▓▓░ 11/12       │  albüm ilerleme, 6 pt
 │                                     │
@@ -451,6 +479,11 @@ Sheet açıkken oyun tahtası 8 pt blur + %40 karartma. Ortam sesi %30'a düşer
 │          Herbaryum'a bak             │  Ghost
 └─────────────────────────────────────┘
 ```
+
+> **Yıldız eşiği notu (27 Ağustos 2026).** Bu karede 3★ gösterildiği için hamle
+> sayısı optimalle eşitlendi. Karar: **3★ yalnızca tam optimal çözümde**, 2★
+> için tolerans `M* × 1,25`, üstü 1★ (bkz. `docs/gdd.md` §8.3). Önceki taslakta
+> yazan 34/32 bu eşiklerle 2★ olurdu.
 
 **Interstitial mantığı:** "Sıradaki seviye"ye basılınca §6.2'deki 8 kural değerlendirilir. Gösterilecekse: 200 ms `--dusk` perde → interstitial → kapanınca doğrudan yeni tahta. **Reklam öncesi hiçbir metin veya sayaç gösterilmez.**
 

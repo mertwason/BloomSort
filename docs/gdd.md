@@ -442,6 +442,11 @@ struct GameState: Equatable, Hashable {
 IDA* + admissible heuristic: `h = (tek renk olmayan kap sayısı) + (kesintiye uğramış renk blokları)`. Transposition table (`Set<GameState.hashValue>`). 12 renk / 15 kap için tipik çözüm < 40 ms.
 Kullanım: (a) üretim doğrulama, (b) `M*` → yıldız eşiği, (c) İpucu.
 
+**Yıldız eşiği (karar, 27 Ağustos 2026):** `M*` üzerinden — **3★ yalnızca tam
+optimal çözümde**, 2★ için `hamle ≤ M* × 1,25`, üstü 1★. Kaybetme yok; yıldız
+yalnızca koleksiyon hedefi. Ek A'daki tohum ödülleri (15/10/6) bu eşiklere
+bağlanır.
+
 ### 8.4 Servisler
 
 | Servis | Seçim | Not |

@@ -38,10 +38,18 @@ public struct Level: Codable, Hashable, Sendable {
     /// Tahtayı seed'den yeniden kurar.
     public var board: GameState { LevelGenerator.board(for: self) }
 
-    // NOT: Yıldız eşikleri burada YOK. GDD §8.3 "M* → yıldız eşiği" diyor ama
-    // eşiğin kendisini (2★ ve 1★ için hamle çarpanlarını) hiçbir yerde
-    // vermiyor. Sayı uydurmamak için boş bırakıldı; değerler netleşince
-    // `stars(forMoves:)` buraya eklenecek.
+    /// Oyuncunun aldığı yıldız (bkz. `docs/gdd.md` §8.3, karar notu).
+    ///
+    /// 3★ yalnızca **tam optimal** çözümde. 2★ için tolerans `M* × 1,25`.
+    /// Üstü 1★ — kaybetme yok, yalnızca yıldız düşer.
+    public func stars(forMoves moves: Int) -> Int {
+        if moves <= optimalMoves { return 3 }
+        if Double(moves) <= Double(optimalMoves) * Level.twoStarTolerance { return 2 }
+        return 1
+    }
+
+    /// 2★ eşiğinin optimal hamleye oranı.
+    public static let twoStarTolerance = 1.25
 }
 
 /// `levels.json` dosyasının kökü.

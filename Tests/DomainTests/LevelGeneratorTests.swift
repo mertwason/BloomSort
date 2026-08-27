@@ -148,6 +148,24 @@ final class LevelGeneratorTests: XCTestCase {
         XCTAssertEqual(LevelGenerator.branchingFactor(state, solution: solution), 2.0, accuracy: 0.001)
     }
 
+    // MARK: - Yıldız eşikleri
+
+    func testUcYildizYalnizcaTamOptimalde() {
+        let level = Level(id: 1, seed: 1, colors: 2, emptyVessels: 2, capacities: [4, 4, 4, 4],
+                          reverseMoves: 5, optimalMoves: 20, branchingFactor: 3)
+        XCTAssertEqual(level.stars(forMoves: 20), 3)
+        XCTAssertEqual(level.stars(forMoves: 19), 3, "optimalin altı olamaz ama 3★ sayılır")
+        XCTAssertEqual(level.stars(forMoves: 21), 2)
+    }
+
+    func testIkiYildizToleransi() {
+        let level = Level(id: 1, seed: 1, colors: 2, emptyVessels: 2, capacities: [4, 4, 4, 4],
+                          reverseMoves: 5, optimalMoves: 20, branchingFactor: 3)
+        XCTAssertEqual(level.stars(forMoves: 25), 2, "M*×1,25 sınırda 2★")
+        XCTAssertEqual(level.stars(forMoves: 26), 1)
+        XCTAssertEqual(level.stars(forMoves: 200), 1, "kaybetme yok, taban 1★")
+    }
+
     // MARK: - Kayıt biçimi
 
     func testLevelJSONGidisDonus() throws {

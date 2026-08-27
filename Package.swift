@@ -9,6 +9,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "BloomsortDomain", targets: ["BloomsortDomain"]),
+        .library(name: "BloomsortDesign", targets: ["BloomsortDesign"]),
         .library(name: "BloomsortServices", targets: ["BloomsortServices"]),
         .executable(name: "levelgen", targets: ["levelgen"]),
     ],
@@ -16,6 +17,10 @@ let package = Package(
         .target(
             name: "BloomsortDomain",
             path: "Sources/BloomsortDomain"
+        ),
+        .target(
+            name: "BloomsortDesign",
+            path: "Sources/BloomsortDesign"
         ),
         .target(
             name: "BloomsortServices",
@@ -31,6 +36,11 @@ let package = Package(
             name: "DomainTests",
             dependencies: ["BloomsortDomain"],
             path: "Tests/DomainTests"
+        ),
+        .testTarget(
+            name: "DesignTests",
+            dependencies: ["BloomsortDesign"],
+            path: "Tests/DesignTests"
         ),
         .testTarget(
             name: "ServicesTests",
