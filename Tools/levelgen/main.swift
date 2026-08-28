@@ -252,11 +252,13 @@ var byteCount = try writePack(levels)
 
 for id in firstMissing..<(firstLevel + count) {
     let levelStart = Date()
-    let deadline = levelBudget.map { levelStart.addingTimeInterval($0) }
     var found: Level?
     // Nefes seviyelerinde önce indirilmiş bant, tutmazsa bandın tamamı
-    // (bkz. Difficulty.candidateRanges).
+    // (bkz. Difficulty.candidateRanges). Bütçe **bant başına** veriliyor:
+    // aksi hâlde indirilmiş bant bütün süreyi yiyor ve geri düşüşe hiç sıra
+    // gelmiyordu.
     for band in Difficulty.candidateRanges(for: id) where found == nil {
+        let deadline = levelBudget.map { Date().addingTimeInterval($0) }
         var attempts = 0
         while attempts < 400, found == nil {
             attempts += 1
